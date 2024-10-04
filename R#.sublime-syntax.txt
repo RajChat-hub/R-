@@ -1,0 +1,142 @@
+%YAML 1.2
+---
+name: R#
+scope: source.rsharp
+file_extensions:
+  - r#
+  - rsharp
+
+contexts:
+  main:
+    - match: \b(class|module|namespace)\b
+      scope: keyword.declaration.rsharp
+    - match: \b(if|else|while|for|switch|return|break|match)\b
+      scope: keyword.control.rsharp
+    - match: \b(true|false|null)\b
+      scope: constant.language.rsharp
+    - match: \b(int|float|double|bool|char|long|byte|var|let|const)\b
+      scope: storage.type.rsharp
+    - match: '//.*$'
+      scope: comment.line.double-slash.rsharp
+    - match: '/\*'
+      push: block_comment
+
+  block_comment:
+    - meta_scope: comment.block.rsharp
+    - match: '\*/'
+      pop: true
+
+  strings:
+    - match: '(\$")'
+      scope: string.quoted.interpolated.rsharp
+      push: double_quoted_interpolated_string
+    - match: '"'
+      push: double_quoted_string
+
+  double_quoted_string:
+    - meta_scope: string.quoted.double.rsharp
+    - match: '"'
+      pop: true
+    - match: '\\.'
+      scope: constant.character.escape.rsharp
+
+  double_quoted_interpolated_string:
+    - meta_scope: string.quoted.interpolated.rsharp
+    - match: '"'
+      pop: true
+    - match: '\{.*?\}'
+      scope: constant.character.escape.interpolated.rsharp
+
+  numbers:
+    - match: \b\d+\b
+      scope: constant.numeric.integer.rsharp
+    - match: \b\d+\.\d+\b
+      scope: constant.numeric.float.rsharp
+
+  operators:
+    - match: \+|\-|\*|\/|\=|\>\=|\<\=|\!|\?\:|\=\>
+      scope: keyword.operator.rsharp
+    - match: '\('
+      scope: punctuation.section.group.begin.rsharp
+      push: parentheses
+
+  parentheses:
+    - match: '\)'
+      scope: punctuation.section.group.end.rsharp
+      pop: true
+
+  functions:
+    - match: \b[A-Za-z_][A-Za-z0-9_]*\b(?=\()
+      scope: entity.name.function.rsharp
+      push: function_call
+
+  function_call:
+    - match: '\('
+      scope: punctuation.definition.parameters.begin.rsharp
+      set: parameters
+
+  parameters:
+    - match: '\)'
+      scope: punctuation.definition.parameters.end.rsharp
+      pop: true
+    - include: main
+
+  access_modifiers:
+    - match: \b(public|private|protected|internal|static|readonly|sealed|override)\b
+      scope: storage.modifier.rsharp
+
+  types:
+    - match: \b(class|struct|enum|interface|delegate|record)\b
+      scope: keyword.declaration.rsharp
+
+  annotations:
+    - match: '@[A-Za-z_][A-Za-z0-9_]*'
+      scope: entity.other.annotation.rsharp
+
+  loops:
+    - match: \b(while|for|do|foreach)\b
+      scope: keyword.loop.rsharp
+    - match: \b(break|continue|yield)\b
+      scope: keyword.control.loop.rsharp
+
+  lambdas:
+    - match: '=>'
+      scope: keyword.operator.lambda.rsharp
+
+  async_await:
+    - match: \b(async|await|async foreach)\b
+      scope: keyword.control.async.rsharp
+
+  pattern_matching:
+    - match: \b(match)\b
+      scope: keyword.control.pattern.rsharp
+    - match: '\bcase\b'
+      scope: keyword.control.case.rsharp
+
+  tuples:
+    - match: '\('
+      scope: punctuation.definition.tuple.begin.rsharp
+      push: tuple_block
+
+  tuple_block:
+    - meta_scope: meta.tuple.rsharp
+    - match: '\)'
+      scope: punctuation.definition.tuple.end.rsharp
+      pop: true
+    - include: main
+
+  generics:
+    - match: '<'
+      scope: punctuation.definition.generic.begin.rsharp
+      push: generic_block
+
+  generic_block:
+    - meta_scope: meta.generic.rsharp
+    - match: '>'
+      scope: punctuation.definition.generic.end.rsharp
+      pop: true
+    - include: main
+
+  exception_handling:
+    - match: \b(try|catch|finally|throw)\b
+      scope: keyword.exception.rsharp
