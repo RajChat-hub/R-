@@ -1,0 +1,50 @@
+// This is a simple RSharp program
+
+// Define a namespace
+namespace MyExampleNamespace {
+
+    // Define a class
+    public class Example {
+
+        // Declare variables
+        private int number;
+        private string message;
+
+        // Constructor
+        public Example(int num, string msg) {
+            number = num;
+            message = msg;
+        }
+
+        // A simple method to display the message
+        public void DisplayMessage() {
+            Console.WriteLine($"Message: {message}");
+            Console.WriteLine($"Number: {number}");
+        }
+
+        // A method that demonstrates a loop and conditional statement
+        public void CountAndDisplay() {
+            for (int i = 1; i <= number; i++) {
+                if (i % 2 == 0) {
+                    Console.WriteLine($"{i} is even.");
+                } else {
+                    Console.WriteLine($"{i} is odd.");
+                }
+            }
+        }
+
+        // Async method example
+        public async void AsyncExample() {
+            await Task.Delay(1000);
+            Console.WriteLine("Async task completed!");
+        }
+
+        // Entry point of the program
+        public static void Main(string[] args) {
+            Example example = new Example(5, "Hello, RSharp!");
+            example.DisplayMessage();
+            example.CountAndDisplay();
+            example.AsyncExample();
+        }
+    }
+}
