@@ -280,216 +280,127 @@ class RetStmt {
 class VarDecl {
     public $name;
     public $type;
-    public $value;
+    public $init;
 
-    public function __construct($name, $type, $value) {
+    public function __construct($name, $type, $init) {
         $this->name = $name;
         $this->type = $type;
+        $this->init = $init;
+    }
+}
+
+// Expression nodes
+class NumberExpr {
+    public $value;
+
+    public function __construct($value) {
         $this->value = $value;
     }
 }
 
-class IfStmt {
-    public $condition;
-    public $then_branch;
-    public $else_branch;
+class StringExpr {
+    public $value;
 
-    public function __construct($condition, $then_branch, $else_branch) {
-        $this->condition = $condition;
-        $this->then_branch = $then_branch;
-        $this->else_branch = $else_branch;
+    public function __construct($value) {
+        $this->value = $value;
     }
 }
 
-class WhileStmt {
-    public $condition;
-    public $body;
+class VarExpr {
+    public $name;
 
-    public function __construct($condition, $body) {
-        $this->condition = $condition;
-        $this->body = $body;
-    }
-}
-
-class ForStmt {
-    public $init;
-    public $condition;
-    public $increment;
-    public $body;
-
-    public function __construct($init, $condition, $increment, $body) {
-        $this->init = $init;
-        $this->condition = $condition;
-        $this->increment = $increment;
-        $this->body = $body;
-    }
-}
-
-class Program {
-    public $statements;
-
-    public function __construct($statements) {
-        $this->statements = $statements;
+    public function __construct($name) {
+        $this->name = $name;
     }
 }
 
 // Parser class
 class Parser {
-    private $lexer;
-    private $current_token;
+    public $lexer;
+    public $cur_token;
 
     public function __construct($lexer) {
         $this->lexer = $lexer;
-        $this->current_token = $this->lexer->next_token();
+        $this->next_token();
     }
 
-    private function error() {
-        echo "Syntax error\n";
+    function next_token() {
+        $this->cur_token = $this->lexer->next_token();
+    }
+
+    function parse_stmt() {
+        if ($this->cur_token->type === TOKEN_RETURN) {
+            $this->next_token();
+            $expr = $this->parse_expr();
+            return new RetStmt($expr);
+        } elseif ($this->cur_token->type === TOKEN_NAME) {
+            $name = $this->cur_token->value;
+            $this->next_token();
+            if ($this->cur_token->type === TOKEN_OPAREN) {
+                $this->next_token();
+                $args = [];
+                while ($this->cur_token->type !== TOKEN_CPAREN) {
+                    $args[] = $this->parse_expr();
+                    if ($this->cur_token->type === TOKEN_COMMA) {
+                        $this->next_token();
+                    }
+                }
+                $this->next_token(); // Consume the closing parenthesis
+                return new FuncallStmt($name, $args);
+            }
+        }
+        print("ERROR: Unexpected token in statement\n");
+        exit(69);
+    }
+
+    function parse_expr() {
+        if ($this->cur_token->type === TOKEN_NUMBER) {
+            $value = $this->cur_token->value;
+            $this->next_token();
+            return new NumberExpr($value);
+        } elseif ($this->cur_token->type === TOKEN_STRING) {
+            $value = $this->cur_token->value;
+            $this->next_token();
+            return new StringExpr($value);
+        } elseif ($this->cur_token->type === TOKEN_NAME) {
+            $name = $this->cur_token->value;
+            $this->next_token();
+            return new VarExpr($name);
+        }
+        print("ERROR: Unexpected token in expression\n");
+        exit(69);
+    }
+}
+
+// Main program logic
+function main($argv) {
+    if (count($argv) < 2) {
+        print("Usage: php parser.php <file>\n");
         exit(1);
     }
 
-    private function consume($token_type) {
-        if ($this->current_token->type === $token_type) {
-            $this->current_token = $this->lexer->next_token();
-        } else {
-            $this->error();
+    $file_path = $argv[1];
+    if (!file_exists($file_path)) {
+        print("ERROR: File not found: $file_path\n");
+        exit(1);
+    }
+
+    $source = file_get_contents($file_path);
+    $lexer = new Lexer($file_path, $source);
+    $parser = new Parser($lexer);
+
+    while ($lexer->is_not_empty()) {
+        $stmt = $parser->parse_stmt();
+        if ($stmt instanceof FuncallStmt) {
+            printf("Function call: %s(%s)\n", $stmt->name, implode(", ", array_map(function($arg) {
+                return $arg instanceof VarExpr ? $arg->name : (string) $arg->value;
+            }, $stmt->args)));
+        } elseif ($stmt instanceof RetStmt) {
+            printf("Return statement: %s\n", $stmt->expr->value);
         }
-    }
-
-    public function parse() {
-        $statements = [];
-        while ($this->current_token !== false) {
-            $statements[] = $this->statement();
-        }
-        return new Program($statements);
-    }
-
-    private function statement() {
-        switch ($this->current_token->type) {
-            case TOKEN_RETURN:
-                return $this->return_stmt();
-            case TOKEN_IF:
-                return $this->if_stmt();
-            case TOKEN_WHILE:
-                return $this->while_stmt();
-            case TOKEN_FOR:
-                return $this->for_stmt();
-            case TOKEN_CLASS:
-            case TOKEN_MODULE:
-            case TOKEN_NAMESPACE:
-                return $this->var_decl();
-            default:
-                return $this->funcall_stmt();
-        }
-    }
-
-    private function return_stmt() {
-        $this->consume(TOKEN_RETURN);
-        $expr = $this->expression();
-        $this->consume(TOKEN_SEMICOLON);
-        return new RetStmt($expr);
-    }
-
-    private function if_stmt() {
-        $this->consume(TOKEN_IF);
-        $this->consume(TOKEN_OPAREN);
-        $condition = $this->expression();
-        $this->consume(TOKEN_CPAREN);
-        $this->consume(TOKEN_OCURLY);
-        $then_branch = $this->block();
-        $this->consume(TOKEN_CCURLY);
-        $else_branch = null;
-        if ($this->current_token->type === TOKEN_ELSE) {
-            $this->consume(TOKEN_ELSE);
-            $this->consume(TOKEN_OCURLY);
-            $else_branch = $this->block();
-            $this->consume(TOKEN_CCURLY);
-        }
-        return new IfStmt($condition, $then_branch, $else_branch);
-    }
-
-    private function while_stmt() {
-        $this->consume(TOKEN_WHILE);
-        $this->consume(TOKEN_OPAREN);
-        $condition = $this->expression();
-        $this->consume(TOKEN_CPAREN);
-        $this->consume(TOKEN_OCURLY);
-        $body = $this->block();
-        $this->consume(TOKEN_CCURLY);
-        return new WhileStmt($condition, $body);
-    }
-
-    private function for_stmt() {
-        $this->consume(TOKEN_FOR);
-        $this->consume(TOKEN_OPAREN);
-        $init = $this->var_decl();
-        $this->consume(TOKEN_SEMICOLON);
-        $condition = $this->expression();
-        $this->consume(TOKEN_SEMICOLON);
-        $increment = $this->funcall_stmt();
-        $this->consume(TOKEN_CPAREN);
-        $this->consume(TOKEN_OCURLY);
-        $body = $this->block();
-        $this->consume(TOKEN_CCURLY);
-        return new ForStmt($init, $condition, $increment, $body);
-    }
-
-    private function block() {
-        $statements = [];
-        while ($this->current_token->type !== TOKEN_CCURLY) {
-            $statements[] = $this->statement();
-        }
-        return $statements;
-    }
-
-    private function funcall_stmt() {
-        $name = $this->current_token->value;
-        $this->consume(TOKEN_NAME);
-        $this->consume(TOKEN_OPAREN);
-        $args = [];
-        while ($this->current_token->type !== TOKEN_CPAREN) {
-            $args[] = $this->expression();
-            if ($this->current_token->type === TOKEN_COMMA) {
-                $this->consume(TOKEN_COMMA);
-            }
-        }
-        $this->consume(TOKEN_CPAREN);
-        $this->consume(TOKEN_SEMICOLON);
-        return new FuncallStmt($name, $args);
-    }
-
-    private function var_decl() {
-        $name = $this->current_token->value;
-        $this->consume(TOKEN_NAME);
-        $this->consume(TOKEN_OPAREN);
-        $type = $this->current_token->value;
-        $this->consume(TOKEN_NAME);
-        $this->consume(TOKEN_CPAREN);
-        $value = $this->expression();
-        $this->consume(TOKEN_SEMICOLON);
-        return new VarDecl($name, $type, $value);
-    }
-
-    private function expression() {
-        // Placeholder for expression parsing
-        $expr = $this->current_token->value;
-        $this->consume($this->current_token->type);
-        return $expr;
     }
 }
 
-// Main execution
-if ($argc < 2) {
-    echo "Usage: php parser.php <file>\n";
-    exit(1);
-}
+main($argv);
 
-$file_path = $argv[1];
-$source = file_get_contents($file_path);
-$lexer = new Lexer($file_path, $source);
-$parser = new Parser($lexer);
-$program = $parser->parse();
 
-echo "Parsed program successfully.\n";
-
-?>
