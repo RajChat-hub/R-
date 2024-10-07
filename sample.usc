@@ -1,0 +1,7 @@
+var name = "Alice";
+var age = 25;
+function greet(user) {
+    return "Hello, " + user + "! You are " + age + " years old.";
+}
+print(greet(name));
+print("The sum of 10 and 5 is " + (10 + 5) + ".");
