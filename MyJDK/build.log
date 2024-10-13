@@ -1,0 +1,24 @@
+src/MyCompiler.java:8: error: ')' or ',' expected
+        System.out.println(Compilation Result:  + result);
+                                      ^
+src/MyCompiler.java:8: error: not a statement
+        System.out.println(Compilation Result:  + result);
+                                                ^
+src/MyCompiler.java:8: error: ';' expected
+        System.out.println(Compilation Result:  + result);
+                                                        ^
+3 errors
+src/MyJRE.java:4: error: cannot find symbol
+            ProcessBuilder pb = new ProcessBuilder(java, HelloWorld);
+                                                   ^
+  symbol:   variable java
+  location: class MyJRE
+src/MyJRE.java:4: error: cannot find symbol
+            ProcessBuilder pb = new ProcessBuilder(java, HelloWorld);
+                                                         ^
+  symbol:   variable HelloWorld
+  location: class MyJRE
+2 errors
+error: file not found: HelloWorld.java
+Usage: javac <options> <source files>
+use --help for a list of possible options
