@@ -168,11 +168,13 @@ class ProxyTests(unittest.TestCase):
  body_bytes 16777216; buffer_bytes 65536; memory_budget_bytes 33554432;
  upstream app {{ address "127.0.0.1:{up_port}"; host "app.internal"; response_ms 15000; }}
  upstream fast {{ address "127.0.0.1:{up_port}"; response_ms 200; write_ms 200; }}
+ upstream sendlimit {{ address "127.0.0.1:{up_port}"; response_ms 2000; write_ms 200; }}
  upstream noforward {{ address "127.0.0.1:{up_port}"; forwarding off; }}
  upstream refused {{ address "127.0.0.1:{unused}"; connect_ms 200; }}
  upstream stalled {{ address "127.0.0.1:{cls.blackhole.getsockname()[1]}"; connect_ms 200; response_ms 2000; }}
  route prefix "/proxy" {{ proxy app; }}
  route prefix "/timeout" {{ proxy fast; }}
+ route prefix "/sendtimeout" {{ proxy sendlimit; }}
  route prefix "/off" {{ proxy noforward; }}
  route exact "/refused" {{ proxy refused; }}
  route exact "/connect-timeout" {{ proxy stalled; }}
@@ -336,6 +338,12 @@ class ProxyTests(unittest.TestCase):
         status,h,b=self.query('/proxy/slow-upload',method='POST',body=body)
         self.assertEqual(status,200)
         self.assertEqual(json.loads(b)['sha256'],hashlib.sha256(body).hexdigest())
+    def test_upstream_request_send_deadline(self):
+        s=self.connect()
+        s.sendall(b'POST /sendtimeout/noread HTTP/1.1\r\nHost: x\r\nContent-Length: 1000000\r\n\r\n'+b'x'*65536)
+        started=time.monotonic()
+        self.assertEqual(Reader(s).response()[0],504)
+        self.assertLess(time.monotonic()-started,1.5)
     def test_upstream_header_limit(self):
         self.assertEqual(self.query('/proxy/big-header')[0],502)
     def test_incomplete_client_body_closes_upstream(self):

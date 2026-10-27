@@ -29,4 +29,8 @@ class App(BaseHTTPRequestHandler):
         self.wfile.write(value)
 
 if __name__=='__main__':
-    ThreadingHTTPServer(('127.0.0.1',9000),App).serve_forever()
+    import argparse
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--port',type=int,default=9000)
+    args=parser.parse_args()
+    ThreadingHTTPServer(('127.0.0.1',args.port),App).serve_forever()
