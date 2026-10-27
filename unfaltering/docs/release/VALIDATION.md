@@ -36,7 +36,7 @@ Socket cases cover GET/HEAD, HEAD errors without bodies, two different host root
 - TSan, long-duration soak tests, independent security audit and exhaustive RFC conformance: NOT RUN. Runtime is presently single-threaded.
 - Apache/Nginx/Caddy comparative benchmarks: NOT RUN. No performance superiority claim is made.
 - Windows/MSVC, macOS/Apple Clang, IOCP and kqueue: NOT IMPLEMENTED / NOT TESTED.
-- Remote CI status must be read from GitHub. Workflow definitions alone do not establish passing checks.
+- Initial remote CI failed before compilation because the existing jdk gitlink lacks .gitmodules metadata and checkout auth cleanup invoked submodule foreach. Sparse checkout alone still left the gitlink in the index and did not fix submodule foreach. The workflow now uses public read-only Git fetch/checkout without the action's submodule/auth-cleanup calls, selecting only unfaltering/ and .github/ in the worktree and preserving unrelated repository entries. Actual rerun results must be read from GitHub; workflow definitions alone do not establish passing checks.
 
 ## Development benchmark
 

@@ -17,11 +17,15 @@ jobs:
           - {compiler: g++, mode: Release, sanitizers: 'OFF'}
           - {compiler: clang++, mode: Debug, sanitizers: 'ON'}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-          submodules: false
-          lfs: false
+      - name: Check out public project sources without unrelated submodule setup
+        env:
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --no-recurse-submodules --depth=1 origin "$SOURCE_REVISION"
+          git sparse-checkout set --no-cone /unfaltering/ /.github/
+          git -c advice.detachedHead=false checkout --detach FETCH_HEAD
       - name: Configure
         run: cmake -S unfaltering -B unfaltering/build -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DUNFALTERING_SANITIZERS=${{ matrix.sanitizers }}
       - name: Build
@@ -34,11 +38,15 @@ jobs:
   fuzz-smoke:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          persist-credentials: false
-          submodules: false
-          lfs: false
+      - name: Check out public project sources without unrelated submodule setup
+        env:
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --no-recurse-submodules --depth=1 origin "$SOURCE_REVISION"
+          git sparse-checkout set --no-cone /unfaltering/ /.github/
+          git -c advice.detachedHead=false checkout --detach FETCH_HEAD
       - run: cmake -S unfaltering -B unfaltering/build -DCMAKE_CXX_COMPILER=clang++ -DUNFALTERING_FUZZ=ON -DBUILD_TESTING=OFF
       - run: cmake --build unfaltering/build -j2
       - run: ./unfaltering/build/uf_fuzz_http unfaltering/tests/fuzz/seeds/http -runs=10000 -max_len=16384
