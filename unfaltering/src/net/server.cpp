@@ -428,7 +428,7 @@ int Reactor::run() {
           if(stopping&&now>=stop_at) {drop.push_back(id);continue;}
           auto& p=*c.proxy;
           if(p.connecting&&now>=p.connect_deadline) proxy_failure(c,504);
-          else if(!p.finished&&now>=p.response_deadline) proxy_failure(c,504);
+          else if(now>=p.response_deadline) proxy_failure(c,504);
           else if(!p.early&&!p.request_sent&&now>=p.send_deadline) proxy_failure(c,504);
           else if(!p.early&&!c.parser.done()&&now>=c.upload_deadline) proxy_failure(c,408);
           else if(c.sent<c.output.size()&&now>=c.write_deadline) c.dead=true;

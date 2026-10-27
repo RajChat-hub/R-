@@ -36,6 +36,8 @@ jobs:
           UBSAN_OPTIONS: halt_on_error=1
           UNFALTERING_INSTRUMENTED: ${{ matrix.sanitizers }}
         run: ctest --test-dir unfaltering/build --output-on-failure --verbose
+      - name: Measured project footprint
+        run: du -sk unfaltering
   fuzz-smoke:
     runs-on: ubuntu-24.04
     steps:

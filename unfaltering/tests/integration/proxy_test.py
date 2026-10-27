@@ -138,6 +138,12 @@ class Handler(socketserver.StreamRequestHandler):
             wire=b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close, X-Hop\r\nX-Hop: secret\r\n\r\n3\r\nabc\r\n4\r\ndefg\r\n0\r\n\r\n'
             for i in range(0,len(wire),3): self.connection.sendall(wire[i:i+3])
             return
+        if path.endswith('/exact-budget'):
+            n=65536
+            for _ in range(3):
+                n=65536-len(f'HTTP/1.1 200 OK\r\nContent-Length: {n}\r\nConnection: keep-alive\r\n\r\n'.encode())
+            self.connection.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: '+str(n).encode()+b'\r\n\r\n'+b'x'*n)
+            return
         if path.endswith('/large') or path.endswith('/memory'):
             n=(128 if path.endswith('/memory') else 8)*1024*1024
             self.connection.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: '+str(n).encode()+b'\r\n\r\n')
@@ -277,6 +283,14 @@ class ProxyTests(unittest.TestCase):
         status,h,result=Reader(s).response(digest=True)
         self.assertEqual(status,200);self.assertEqual(result[0],8*1024*1024)
         self.assertEqual(result[1],hashlib.sha256(BLOCK*256).hexdigest())
+    def test_exact_write_budget_finishes_keepalive_transaction(self):
+        s=self.connect();reader=Reader(s)
+        s.sendall(b'GET /proxy/exact-budget HTTP/1.1\r\nHost: x\r\n\r\n')
+        status,h,body=reader.response()
+        self.assertEqual(status,200)
+        self.assertEqual(len(body)+len(f'HTTP/1.1 200 OK\r\nContent-Length: {len(body)}\r\nConnection: keep-alive\r\n\r\n'.encode()),65536)
+        s.sendall(b'GET /proxy/chunk HTTP/1.1\r\nHost: x\r\n\r\n')
+        self.assertEqual(reader.response()[2],b'abcdefg')
     def test_memory_bound_with_128_mib_stream(self):
         s=self.connect();s.sendall(b'GET /proxy/memory HTTP/1.1\r\nHost: x\r\n\r\n')
         status,h,result=Reader(s).response(digest=True)

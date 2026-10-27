@@ -31,3 +31,5 @@ Network event work is capped at 64 KiB and file jobs at 16 KiB. The request dead
 A kernel operation stuck on an untrustworthy filesystem is not safely cancellable by C++ thread teardown. The reactor remains isolated while worker credits are exhausted, but worker joining may exceed the network drain deadline in that pathological case. Logging to regular files has the same trusted-storage requirement. There is no hard real-time shutdown claim.
 
 References: RFC 9110 https://www.rfc-editor.org/rfc/rfc9110.html and RFC 9112 https://www.rfc-editor.org/rfc/rfc9112.html. This is a deliberately strict HTTP/1.x subset, not exhaustive conformance.
+
+An exact write-budget completion is finalized even when no further readiness event will arrive. The completed transaction is reset immediately, allowing its next keep-alive request. The absolute response deadline also covers final downstream queue draining; write-progress alone cannot extend a transaction indefinitely.

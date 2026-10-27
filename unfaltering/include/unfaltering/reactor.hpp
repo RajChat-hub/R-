@@ -29,6 +29,7 @@ class Reactor {
   void upstream_event(Connection& c,std::uint32_t events);
   void upstream_write(Connection& c);
   void upstream_read(Connection& c);
+  bool finish_proxy_response(Connection& c,std::uint64_t id);
   bool proxy_write_client(Connection& c,std::uint64_t id);
   void add(int fd, std::uint64_t id, std::uint32_t events);
   bool arm(Connection &c, std::uint64_t id);

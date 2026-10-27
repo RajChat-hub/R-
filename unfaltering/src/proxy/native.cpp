@@ -207,6 +207,16 @@ void Reactor::upstream_event(Connection& c,std::uint32_t events) {
   if(events&(EPOLLIN|EPOLLHUP|EPOLLRDHUP)) upstream_read(c);
   if(c.proxy&&c.proxy->socket&&(events&EPOLLOUT)) upstream_write(c);
 }
+bool Reactor::finish_proxy_response(Connection& c,std::uint64_t id) {
+  release_upstream(c);
+  c.proxy.reset();c.writing=false;c.committed=false;
+  c.output.clear();c.sent=0;
+  if(c.close||stopping) return false;
+  c.parser=StreamParser(cfg.limits);c.started=!c.input.empty();
+  c.deadline=Clock::now()+ms(c.started?cfg.request_ms:cfg.idle_ms);
+  if(c.started) dispatch(c,id);
+  return !c.dead;
+}
 bool Reactor::proxy_write_client(Connection& c,std::uint64_t id) {
   std::size_t budget=65536;
   while(c.proxy&&!c.dead&&budget) {
@@ -214,15 +224,7 @@ bool Reactor::proxy_write_client(Connection& c,std::uint64_t id) {
     if(!c.proxy) break;
     if(c.sent==c.output.size()) {
       c.output.clear();c.sent=0;
-      if(c.proxy->finished&&c.proxy->terminator) {
-        release_upstream(c);
-        c.proxy.reset();c.writing=false;c.committed=false;
-        if(c.close||stopping) return false;
-        c.parser=StreamParser(cfg.limits);c.started=!c.input.empty();
-        c.deadline=Clock::now()+ms(c.started?cfg.request_ms:cfg.idle_ms);
-        if(c.started) dispatch(c,id);
-        return !c.dead;
-      }
+      if(c.proxy->finished&&c.proxy->terminator) return finish_proxy_response(c,id);
       return true;
     }
     auto n=send(c.socket.get(),c.output.data()+c.sent,std::min(budget,c.output.size()-c.sent),MSG_NOSIGNAL);
@@ -234,6 +236,8 @@ bool Reactor::proxy_write_client(Connection& c,std::uint64_t id) {
   // When the write budget empties a full client queue, explicitly refill it.
   // Otherwise a full upstream queue could leave neither endpoint interested.
   if(c.proxy&&!c.dead) response_pump(c);
+  if(c.proxy&&!c.dead&&c.sent==c.output.size()&&c.proxy->finished&&c.proxy->terminator)
+    return finish_proxy_response(c,id);
   return !c.dead;
 }
 }
