@@ -1,15 +1,35 @@
-# Development threat model and release restrictions
+# Phase 2 development threat model
 
-**Not approved for public production deployment.** No independent penetration audit or exhaustive protocol conformance review has occurred.
+**Not approved for public production deployment.** No independent security audit or exhaustive HTTP conformance review has occurred.
 
-Untrusted clients cross the TCP, HTTP framing and path-selection boundaries. Configuration and document-root contents are trusted operator inputs. The process should run unprivileged; the default example binds loopback. There is no authentication, authorization, TLS, WAF or sandbox/chroot. Public routes are not access controls. Unknown hosts deliberately use the default site.
+## Trust boundaries
 
-Framing policy: HTTP/1.1 only; one valid Host; token header names; no obs-fold or prohibited controls; duplicate Content-Length rejected even if identical; CL+TE rejected; transfer coding must be exactly chunked; bounded decoded body, header count/bytes and total wire buffer. Expect, extensions and nonempty trailers are rejected. Parse errors force connection closure. Responses construct headers from fixed code-controlled strings and file sizes.
+Clients and upstream HTTP bytes are untrusted. Listener/upstream configuration and document-root contents are operator-controlled. Numeric upstream addresses and Host values are validated before listening; route references are fixed configuration, never derived from client URLs, authority or forwarding headers. There is no DNS lookup on the reactor, arbitrary-destination forward-proxy mode, TLS, WAF, authentication or route-level authorization. Unknown valid hosts use the configured default static root.
 
-Filesystem policy: decode once; reject null/control/backslash, percent left after decoding and dot components; walk with openat/O_NOFOLLOW from a held root; require regular files; no listings. Symlink/root-escape tests cover direct and directory links. Files modified during serving may cause early EOF and connection closure. Mounted filesystems and malicious privileged local administrators are not isolated by this server.
+## HTTP and forwarding
 
-Resource policy: bounded connections, input buffers, body sizes, header sizes/counts and requests per connection; sequential output; partial IO; fixed work budgets; absolute request/write deadlines; idle deadlines; graceful-drain deadline. Descriptor exhaustion consumes one pending accept with a reserve descriptor and pauses listener registration. Max memory depends on configured connections multiplied by bounded buffers, container overhead and kernel socket buffers. The upper connection bound is not a promise of suitable memory use for a given host.
+Persistent bounded state machines reject duplicate Content-Length (including equal duplicates), CL+TE, unsupported transfer codings, invalid controls, obs-fold and malformed chunk delimiters. Headers/counts, decoded body length and all wire queues are bounded. Expect: 100-continue, extensions and nonempty trailers are unsupported and rejected. Upstream 101 and CONNECT tunnels are refused. HEAD/204/304 bodies are not forwarded.
 
-Known hardening gaps: synchronous regular-file IO and stderr logging can stall the single reactor; parser rescanning can cost CPU on deliberately fragmented input; no per-IP rate limit; no multiworker isolation; no HTTP/2/3; no TLS; no transactional reload; no upstream protection because proxying is absent. Connection exception boundaries fail closed, but process-wide allocation exhaustion remains a fatal startup/runtime error. No proven protection against all resource-exhaustion attacks is claimed.
+Connection-nominated and standard hop-by-hop headers are stripped in both directions. Framing is reconstructed rather than copied blindly. Upstream Host is configured; incoming Forwarded, X-Forwarded-* and X-Real-IP are removed. The optional replacement policy uses only the directly accepted peer, validated request authority and the actual plaintext listener protocol. Do not enable application trust in arbitrary custom header aliases.
 
-Tests exercise ambiguous framing, fragmented headers/bodies, request reuse, encoded/double-encoded traversal, symlink escapes, slow clients, blocked writers, resets, descriptor exhaustion and shutdown. ASan/UBSan evidence is documented separately; local leak checking is unavailable in the sandbox, while the remote Clang job passed with leak detection enabled. Future release requires fuzzing, independent security review, operational/load validation and supported-platform CI.
+Each transaction uses a fresh upstream connection with Connection: close, no pooling and no automatic retries. Requests may reach an application before a later malformed chunk or client disconnect is detected; aborting transport does not roll back application side effects. Application-level idempotency is still required.
+
+Response boundary errors observed before commitment yield 502; connect/response/send timeouts yield 504. Once committed, an error closes the response without a forged success terminator or second HTTP response. Buffered bytes beyond a fixed-length boundary are rejected; any unread trailing bytes are discarded with that non-reused upstream socket. Informational responses are consumed with a count cap.
+
+## Filesystem, resources and shutdown
+
+Descriptor-relative openat/O_NOFOLLOW traversal and regular-file checks preserve the original encoded traversal and symlink-escape defenses. Jobs own duplicated descriptors and carry connection/epoch identities. IO workers are fixed at two; their queued/active/completed jobs share 64 credits. Event notifications are nonblocking. Late results cannot address a reused descriptor or newer request.
+
+Each wire queue is capped at buffer_bytes. Connection admission uses max_connections and a conservative memory reservation (documented in PROXY.md); allocator/runtime overhead, fixed queues, thread stacks and kernel socket buffers require separate OS budgets. A 128 MiB stream is tested with bounded wire queues and a noninstrumented child-RSS threshold. Instrumented RSS is reported separately because sanitizer quarantine has different memory costs.
+
+The reactor never performs static open/stat/pread or sink writes. Logger capacity is fixed and records may be dropped. Pipe delivery is nonblocking and SIGPIPE is blocked in its worker. Log records exclude request bodies, query strings and credentials. A final diagnostic is best-effort, not a durable audit guarantee.
+
+Connection and upstream identities, explicit readiness masks, write/read budgets, deadlines and deregistration during full-buffer backpressure prevent the tested descriptor-reuse, half-close, resource-exhaustion and shutdown failures. A reproduced full-queue wake-up deadlock was corrected by pumping retained upstream data after a client write budget frees output space.
+
+Shutdown stops accepts, bounds network draining, closes both endpoints and joins workers. Kernel operations permanently stuck on hostile or failed regular-file storage are not safely cancellable; joining may exceed the network deadline. Use trustworthy local storage and an external service-manager termination policy.
+
+## Release limits
+
+No unimplemented TLS, HTTP/2/3, cache, load balancing, FastCGI, multi-reactor, live reload, WAF or non-Linux security capability is claimed. ASan/UBSan and bounded fuzz smoke checks are evidence for tested cases, not proof against all input/resource attacks. ThreadSanitizer, long-duration soak testing, expanded fuzzing, independent review and production operating procedures remain future gates.
+
+Connection-option tokens are capped by header_count across the entire header section, preventing a single comma-heavy Connection field from allocating an unbounded hop-header set. The current build explicitly requires 64-bit Linux; no 32-bit wire-counter compatibility is claimed.

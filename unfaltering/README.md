@@ -2,44 +2,43 @@
 
 **A SalesAutoMate™ Technology — Built to Endure. Engineered to Serve.**
 
-Version 0.1.0-dev. Original C++20 HTTP/1.1 implementation with a Linux epoll reactor.
-This is a tested development milestone, **not a production-ready Apache/Nginx replacement**.
-First-party licensing is pending owner approval; no open-source licence is granted by repository visibility.
+Version 0.2.0-dev. Original C++20 Linux HTTP server and native HTTP reverse-proxy foundation. **Development software, not approved for public production deployment.** First-party licensing remains pending owner approval; no licence grant follows from public repository visibility.
 
-## Build and run (Linux)
+## Build and test (Linux)
 
-Requires GCC 13+ or a compatible Clang compiler, CMake 3.20+, and Python 3 for integration tests.
-No runtime networking dependencies or third-party server engine are used.
+Requires CMake 3.20+, GCC 13+ or compatible Clang, POSIX threads and Python 3 for independent tests. No prebuilt networking or server framework is used.
 
 ```sh
-cmake -S unfaltering -B unfaltering/build -DCMAKE_BUILD_TYPE=Debug
+cmake -S unfaltering -B unfaltering/build -DCMAKE_BUILD_TYPE=Release
 cmake --build unfaltering/build -j2
 ctest --test-dir unfaltering/build --output-on-failure
-./unfaltering/build/unfaltering --version
 ./unfaltering/build/unfaltering --check --config unfaltering/examples/server.ufc
 ./unfaltering/build/unfaltering serve --config unfaltering/examples/server.ufc
-# In another terminal:
-curl -i http://127.0.0.1:8080/
-curl -I -H 'Host: example.test' http://127.0.0.1:8080/
 ```
 
-Send SIGTERM or Ctrl+C to stop. The listener closes immediately; pending writes drain for at most `shutdown_ms`. Idle/incomplete requests close immediately during shutdown.
+Open http://127.0.0.1:8080/ after starting the process. For a real local upstream application:
 
-## Implemented
+```sh
+# Terminal 1
+python3 unfaltering/examples/upstream.py
+# Terminal 2
+./unfaltering/build/unfaltering --check --config unfaltering/examples/proxy.ufc
+./unfaltering/build/unfaltering serve --config unfaltering/examples/proxy.ufc
+# Terminal 3
+curl -i http://127.0.0.1:8080/app/hello
+curl -i -X POST --data 'hello upstream' http://127.0.0.1:8080/app/echo
+```
 
-- Original bounded HTTP/1.1 parser with fragmented input, persistent connections and sequential pipelining.
-- Content-Length and strict chunked-body decoding; ambiguous framing rejected and connection closed.
-- GET/HEAD static serving, correct lengths, MIME selection, Date and nosniff headers.
-- Descriptor-relative filesystem walking with O_NOFOLLOW on every untrusted component; no directory listing.
-- Direct nonblocking Linux epoll, partial reads/writes, per-event work budgets, backpressure, request/idle/write deadlines, connection/request limits, descriptor-exhaustion recovery and bounded shutdown.
-- Strict `.ufc` configuration, host roots, exact/longest-prefix static routes, unknown/duplicate-key rejection and `--check`.
-- Structured event logs omit targets, query strings, headers and bodies.
-- Unit, socket, fault-injection and sanitizer tests; HTTP/config libFuzzer harnesses.
+## Implemented and bounded
 
-## Not implemented
+Original stateful HTTP/1.x request/response parsing, Linux epoll lifecycle, static GET/HEAD, virtual hosts, exact/prefix routes, descriptor-relative path protection, and native configured HTTP proxying. Request and response bodies stream through bounded queues, with canonical framing, backpressure, strict hop-by-hop stripping, controlled Host/forwarding policy, timeouts, gateway errors and no retries or upstream pooling. Downstream keep-alive and sequential pipelines remain supported.
 
-Reverse proxy, TLS, upstream load balancing, cache, PHP-FPM/FastCGI, live reload, worker distribution, rate limiting, metrics endpoint, HTTP/2, HTTP/3, IOCP, kqueue and binary distribution packages. Unsupported config keys fail instead of silently enabling these features.
+Static filesystem work runs in two bounded workers; request logging uses a separate bounded worker and nonblocking pipe delivery. Connections have explicit memory reservations. Graceful network draining closes both endpoints at its deadline. Permanently stalled kernel filesystem operations can delay worker joining; see the threat model.
 
-HTTP/1.0, IPv6 authority/listeners, Expect: 100-continue, chunk extensions and nonempty trailers are rejected. Only origin-form request targets are supported. See [security limits](docs/security/THREAT_MODEL.md) before any external exposure.
+## Deliberate limits
 
-See [configuration](docs/operations/CONFIGURATION.md), [architecture](docs/architecture/OVERVIEW.md), [test evidence](docs/release/VALIDATION.md) and [next milestones](docs/release/STATUS.md).
+Linux only; numeric IPv4 upstreams only; plaintext HTTP only. No TLS, HTTP/2/3, FastCGI/PHP-FPM, cache, load balancing, DNS resolver, WebSocket/CONNECT tunnels, transactional reload, multi-reactor worker distribution, WAF or general availability. Expect: 100-continue, chunk extensions and nonempty trailers are rejected. Informational responses are consumed with a bounded count. Routes are not access controls.
+
+[Proxy configuration and demo](docs/operations/PROXY.md), [architecture](docs/architecture/OVERVIEW.md), [threat model](docs/security/THREAT_MODEL.md), [Phase 2 evidence](docs/release/PHASE2.md), [feature status](docs/release/STATUS.md).
+
+The Phase 1 validation record is retained as historical evidence. Phase 2 uses a separate branch and stacked draft PR; PR #1 is not merged automatically.

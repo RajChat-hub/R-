@@ -1,0 +1,20 @@
+# Run: python3 unfaltering/examples/upstream.py
+server {
+ listen "127.0.0.1:8080";
+ root "www";
+ buffer_bytes 65536;
+ memory_budget_bytes 67108864;
+ body_bytes 16777216;
+ response_body_bytes 1073741824;
+ request_ms 10000;
+ write_ms 10000;
+ upstream local_app {
+  address "127.0.0.1:9000";
+  host "app.local";
+  connect_ms 1000;
+  write_ms 5000;
+  response_ms 15000;
+  forwarding replace;
+ }
+ route prefix "/app" { proxy local_app; }
+}

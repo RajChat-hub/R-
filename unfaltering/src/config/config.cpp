@@ -1,6 +1,7 @@
 // Copyright (c) 2026 SalesAutoMate. First-party licensing pending.
 #include "unfaltering/config.hpp"
 #include <arpa/inet.h>
+#include <algorithm>
 #include <charconv>
 #include <fstream>
 #include <set>
@@ -131,6 +132,49 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
       c.hosts.emplace(name, p);
       continue;
     }
+    if (key == "upstream") {
+      auto name=l.word;
+      if(name.empty()||name.size()>64||!std::all_of(name.begin(),name.end(),[](char x){
+        return (x>='a'&&x<='z')||(x>='A'&&x<='Z')||(x>='0'&&x<='9')||x=='_'||x=='-';
+      })||c.upstreams.contains(name)) l.error("invalid or duplicate upstream");
+      l.next(); l.need("{");
+      Upstream u;
+      std::set<std::string> seen;
+      while(l.word!="}") {
+        auto field=l.word;
+        if(field.empty()||!seen.insert(field).second) l.error("duplicate or incomplete upstream");
+        l.next();
+        if(field=="address") {
+          auto v=l.value();
+          auto colon=v.find(':');
+          if(colon==v.npos) l.error("upstream address must be numeric IPv4:port");
+          u.address=v.substr(0,colon);
+          in_addr ip{};
+          if(inet_pton(AF_INET,u.address.c_str(),&ip)!=1||ip.s_addr==INADDR_ANY||ntohl(ip.s_addr)>=0xe0000000U)
+            l.error("invalid upstream IPv4");
+          auto value=v.substr(colon+1);
+          unsigned port=0;
+          auto [end,ec]=std::from_chars(value.data(),value.data()+value.size(),port);
+          if(ec!=std::errc{}||end!=value.data()+value.size()||!port||port>65535) l.error("invalid upstream port");
+          u.port=static_cast<unsigned short>(port);
+        } else if(field=="host") {
+          u.host=l.value();
+          if(!valid_host(u.host)) l.error("invalid controlled upstream Host");
+        } else if(field=="connect_ms") u.connect_ms=numeric(l,100,60000);
+        else if(field=="response_ms") u.response_ms=numeric(l,100,60000);
+        else if(field=="write_ms") u.write_ms=numeric(l,100,60000);
+        else if(field=="forwarding") {
+          auto v=l.value();
+          if(v!="replace"&&v!="off") l.error("forwarding requires replace or off");
+          u.forwarding=v=="replace";
+        } else l.error("unknown upstream field");
+      }
+      l.need("}");
+      if(u.address.empty()) l.error("upstream address required");
+      if(u.host.empty()) u.host=u.address+":"+std::to_string(u.port);
+      c.upstreams.emplace(name,std::move(u));
+      continue;
+    }
     if (key == "route") {
       bool exact = l.word == "exact";
       if (!exact && l.word != "prefix")
@@ -144,10 +188,12 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
           l.error("duplicate route");
       l.next();
       l.need("{");
-      l.need("root");
-      auto p = path(l.value());
+      Route route{exact,target,{},{}};
+      if(l.word=="root") { l.next(); route.root=path(l.value()); }
+      else if(l.word=="proxy") { l.next(); route.upstream=l.value(); }
+      else l.error("route requires root or proxy");
       l.need("}");
-      c.routes.push_back(Route{exact, target, p});
+      c.routes.push_back(std::move(route));
       continue;
     }
     if (!keys.insert(key).second)
@@ -177,8 +223,14 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
       c.limits.header_bytes = numeric(l, 256, 65536);
     else if (key == "header_count")
       c.limits.header_count = numeric(l, 1, 200);
+    else if (key == "buffer_bytes")
+      c.buffer_bytes = numeric(l, 16384, 262144);
+    else if (key == "memory_budget_bytes")
+      c.memory_budget_bytes = numeric(l, 1048576, 1073741824);
     else if (key == "body_bytes")
-      c.limits.body_bytes = numeric(l, 0, 1048576);
+      c.limits.body_bytes = numeric(l, 0, 67108864);
+    else if (key == "response_body_bytes")
+      c.response_body_bytes=numeric(l,0,1073741824);
     else if (key == "idle_ms")
       c.idle_ms = numeric(l, 100, 60000);
     else if (key == "request_ms")
@@ -195,6 +247,12 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
     l.error("trailing content");
   if (!keys.contains("listen") || c.root.empty())
     l.error("listen and root are required");
+  for(const auto& route:c.routes) {
+    if(!route.upstream.empty()&&!c.upstreams.contains(route.upstream)) l.error("proxy route references unknown upstream");
+  }
+  if(c.buffer_bytes<2*c.limits.header_bytes+1024) l.error("buffer_bytes must fit twice header_bytes plus 1024 bytes");
+  if(8*c.limits.header_bytes+8*c.buffer_bytes+512*c.limits.header_count+32768>c.memory_budget_bytes)
+    l.error("memory budget cannot admit one connection");
   return c;
 }
 } // namespace uf

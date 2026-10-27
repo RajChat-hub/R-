@@ -1,0 +1,244 @@
+{
+  "date": "2026-10-27",
+  "code_commit": "ebc4f69da145d33a89e1f2f5dde048c552d61a0e",
+  "foundation_commit": "549c531e9ce2eff7fa5d5c64efc5d8fefce89c00",
+  "hardening_checkpoint": "dbf2a4f5f70a6c685ff9451bdeedf9b18798927c",
+  "push_run": {
+    "id": 40543528161,
+    "url": "https://github.com/RajChat-hub/R-/actions/runs/40543528161",
+    "conclusion": "success"
+  },
+  "stacked_pr_run": {
+    "id": 40543536247,
+    "url": "https://github.com/RajChat-hub/R-/actions/runs/40543536247",
+    "conclusion": "success"
+  },
+  "jobs": [
+    {
+      "id": 122327918690,
+      "name": "build (g++, Debug, OFF)",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check out public project sources without unrelated submodule setup",
+          "conclusion": "success"
+        },
+        {
+          "name": "Configure",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test",
+          "conclusion": "success"
+        },
+        {
+          "name": "Measured project footprint",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 122327918728,
+      "name": "build (clang++, Debug, ON)",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check out public project sources without unrelated submodule setup",
+          "conclusion": "success"
+        },
+        {
+          "name": "Configure",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test",
+          "conclusion": "success"
+        },
+        {
+          "name": "Measured project footprint",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 122327918871,
+      "name": "compare-foundation",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check out public project sources",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build matched Release executables",
+          "conclusion": "success"
+        },
+        {
+          "name": "Paired development sample and disk usage",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 122327919127,
+      "name": "build (g++, Release, OFF)",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check out public project sources without unrelated submodule setup",
+          "conclusion": "success"
+        },
+        {
+          "name": "Configure",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test",
+          "conclusion": "success"
+        },
+        {
+          "name": "Measured project footprint",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 122327919477,
+      "name": "fuzz-smoke",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check out public project sources without unrelated submodule setup",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run cmake -S unfaltering -B unfaltering/build -DCMAKE_CXX_COMPILER=clang++ -DUNFALTERING_FUZZ=ON -DBUILD_TESTING=OFF",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run cmake --build unfaltering/build -j2",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run ./unfaltering/build/uf_fuzz_http unfaltering/tests/fuzz/seeds/http -runs=10000 -max_len=16384",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run ./unfaltering/build/uf_fuzz_config unfaltering/tests/fuzz/seeds/config -runs=10000 -max_len=65536",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run ./unfaltering/build/uf_fuzz_response unfaltering/tests/fuzz/seeds/response -runs=10000 -max_len=16384",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "excerpts": {
+    "build (g++, Debug, OFF)": [
+      "2026-10-27T16:42:27.3244244Z -- The CXX compiler identification is GNU 13.3.0",
+      "2026-10-27T16:42:45.1606899Z   ASAN_OPTIONS: detect_leaks=1:halt_on_error=1",
+      "2026-10-27T16:42:45.1607226Z   UBSAN_OPTIONS: halt_on_error=1",
+      "2026-10-27T16:42:45.1607749Z   UNFALTERING_INSTRUMENTED: OFF",
+      "2026-10-27T16:42:58.3522490Z 10: Ran 30 tests in 6.027s",
+      "2026-10-27T16:42:58.3542363Z 10: Child peak RSS 46964 KiB; peak checked proxy queue bytes 131072",
+      "2026-10-27T16:42:58.3638806Z 10/11 Test #10: proxy_integration ................   Passed    6.10 sec",
+      "2026-10-27T16:42:58.5246535Z 11: Shipped configuration + static site + native proxied demo GET/POST passed",
+      "2026-10-27T16:42:58.5338145Z 11/11 Test #11: proxy_demo .......................   Passed    0.17 sec",
+      "2026-10-27T16:42:58.5341935Z 100% tests passed, 0 tests failed out of 11",
+      "2026-10-27T16:42:58.6015708Z 27476\tunfaltering"
+    ],
+    "build (clang++, Debug, ON)": [
+      "2026-10-27T16:42:28.3427755Z -- The CXX compiler identification is Clang 18.1.3",
+      "2026-10-27T16:42:41.7737533Z   ASAN_OPTIONS: detect_leaks=1:halt_on_error=1",
+      "2026-10-27T16:42:41.7737987Z   UBSAN_OPTIONS: halt_on_error=1",
+      "2026-10-27T16:42:41.7738522Z   UNFALTERING_INSTRUMENTED: ON",
+      "2026-10-27T16:42:57.1025017Z 10: Ran 30 tests in 6.345s",
+      "2026-10-27T16:42:57.1043176Z 10: Child peak RSS 419184 KiB; peak checked proxy queue bytes 131072",
+      "2026-10-27T16:42:57.1135592Z 10/11 Test #10: proxy_integration ................   Passed    6.41 sec",
+      "2026-10-27T16:42:57.2909554Z 11: Shipped configuration + static site + native proxied demo GET/POST passed",
+      "2026-10-27T16:42:57.3004844Z 11/11 Test #11: proxy_demo .......................   Passed    0.19 sec",
+      "2026-10-27T16:42:57.3009089Z 100% tests passed, 0 tests failed out of 11",
+      "2026-10-27T16:42:57.3890401Z 36744\tunfaltering"
+    ],
+    "compare-foundation": [
+      "2026-10-27T16:42:26.2770154Z -- The CXX compiler identification is GNU 13.3.0",
+      "2026-10-27T16:42:32.5895797Z -- The CXX compiler identification is GNU 13.3.0",
+      "2026-10-27T16:42:39.8116764Z ##[group]Run python3 unfaltering/benchmarks/compare.py /tmp/uf-foundation/build/unfaltering unfaltering/build/unfaltering",
+      "2026-10-27T16:42:39.8117708Z \u001b[36;1mpython3 unfaltering/benchmarks/compare.py /tmp/uf-foundation/build/unfaltering unfaltering/build/unfaltering\u001b[0m",
+      "2026-10-27T16:42:40.8178051Z 2148\tunfaltering",
+      "2026-10-27T16:42:40.8178265Z 1320\t/tmp/uf-foundation"
+    ],
+    "build (g++, Release, OFF)": [
+      "2026-10-27T16:42:25.2771921Z -- The CXX compiler identification is GNU 13.3.0",
+      "2026-10-27T16:42:33.6121986Z   ASAN_OPTIONS: detect_leaks=1:halt_on_error=1",
+      "2026-10-27T16:42:33.6122235Z   UBSAN_OPTIONS: halt_on_error=1",
+      "2026-10-27T16:42:33.6122674Z   UNFALTERING_INSTRUMENTED: OFF",
+      "2026-10-27T16:42:46.2786687Z 10: Ran 30 tests in 5.949s",
+      "2026-10-27T16:42:46.2787234Z 10: Child peak RSS 46952 KiB; peak checked proxy queue bytes 131072",
+      "2026-10-27T16:42:46.2879757Z 10/11 Test #10: proxy_integration ................   Passed    6.00 sec",
+      "2026-10-27T16:42:46.4092427Z 11: Shipped configuration + static site + native proxied demo GET/POST passed",
+      "2026-10-27T16:42:46.4165232Z 11/11 Test #11: proxy_demo .......................   Passed    0.13 sec",
+      "2026-10-27T16:42:46.4168201Z 100% tests passed, 0 tests failed out of 11",
+      "2026-10-27T16:42:46.4734217Z 4020\tunfaltering"
+    ],
+    "fuzz-smoke": [
+      "2026-10-27T16:42:28.4588129Z -- The CXX compiler identification is Clang 18.1.3",
+      "2026-10-27T16:42:39.8398130Z Done 10000 runs in 0 second(s)",
+      "2026-10-27T16:42:40.7223638Z Done 10000 runs in 0 second(s)",
+      "2026-10-27T16:42:41.0337405Z Done 10000 runs in 0 second(s)"
+    ]
+  }
+}
