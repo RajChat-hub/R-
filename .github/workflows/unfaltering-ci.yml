@@ -35,7 +35,7 @@ jobs:
           ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
           UBSAN_OPTIONS: halt_on_error=1
           UNFALTERING_INSTRUMENTED: ${{ matrix.sanitizers }}
-        run: ctest --test-dir unfaltering/build --output-on-failure
+        run: ctest --test-dir unfaltering/build --output-on-failure --verbose
   fuzz-smoke:
     runs-on: ubuntu-24.04
     steps:
@@ -53,3 +53,29 @@ jobs:
       - run: ./unfaltering/build/uf_fuzz_http unfaltering/tests/fuzz/seeds/http -runs=10000 -max_len=16384
       - run: ./unfaltering/build/uf_fuzz_config unfaltering/tests/fuzz/seeds/config -runs=10000 -max_len=65536
       - run: ./unfaltering/build/uf_fuzz_response unfaltering/tests/fuzz/seeds/response -runs=10000 -max_len=16384
+  compare-foundation:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out public project sources
+        env:
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --no-recurse-submodules --depth=1 origin "$SOURCE_REVISION"
+          git sparse-checkout set --no-cone /unfaltering/ /.github/
+          git -c advice.detachedHead=false checkout --detach FETCH_HEAD
+      - name: Build matched Release executables
+        run: |
+          git fetch --no-tags --no-recurse-submodules --depth=1 origin 549c531e9ce2eff7fa5d5c64efc5d8fefce89c00
+          mkdir -p /tmp/uf-foundation
+          git archive FETCH_HEAD unfaltering | tar -x -C /tmp/uf-foundation
+          cmake -S /tmp/uf-foundation/unfaltering -B /tmp/uf-foundation/build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+          cmake --build /tmp/uf-foundation/build -j2
+          cmake -S unfaltering -B unfaltering/build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+          cmake --build unfaltering/build -j2
+      - name: Paired development sample and disk usage
+        run: |
+          python3 unfaltering/benchmarks/compare.py /tmp/uf-foundation/build/unfaltering unfaltering/build/unfaltering
+          du -sk unfaltering /tmp/uf-foundation

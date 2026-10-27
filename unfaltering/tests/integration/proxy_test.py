@@ -97,7 +97,7 @@ class Handler(socketserver.StreamRequestHandler):
         else:
             n=int(headers.get('content-length','0'))
             while n:
-                if path.endswith('/slow-upload'): time.sleep(.001)
+                if path.endswith('/slow-upload'): time.sleep(.005)
                 chunk=self.rfile.read(min(16384,n))
                 if not chunk: raise EOFError()
                 body+=chunk;n-=len(chunk)
@@ -115,6 +115,13 @@ class Handler(socketserver.StreamRequestHandler):
         for suffix,value in malformed.items():
             if path.endswith(suffix):
                 self.connection.sendall(b'HTTP/1.1 200 OK\r\n'+value+b'\r\nX');return
+        if path.endswith('/slow-mid'):
+            self.connection.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: 100\r\n\r\nabc')
+            time.sleep(1)
+            return
+        if path.endswith('/big-header'):
+            self.connection.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: 0\r\nX: '+b'a'*20000+b'\r\n\r\n')
+            return
         if path.endswith('/short'):
             self.connection.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: 100\r\n\r\nshort');return
         if path.endswith('/extra'):
@@ -319,6 +326,42 @@ class ProxyTests(unittest.TestCase):
             path=self.root/'invalid.ufc';path.write_text(f'server {{ listen "127.0.0.1:8080"; root "."; {extra} }}')
             result=subprocess.run([BINARY,'--check','--config',str(path)],capture_output=True)
             self.assertNotEqual(result.returncode,0)
+    def test_upstream_timeout_after_commit_truncates(self):
+        s=self.connect()
+        s.sendall(b'GET /timeout/slow-mid HTTP/1.1\r\nHost: x\r\n\r\n')
+        with self.assertRaises(EOFError): Reader(s).response()
+        self.assertEqual(self.query()[0],200)
+    def test_request_backpressure_to_slow_upstream(self):
+        body=b'k'*(8*1024*1024)
+        status,h,b=self.query('/proxy/slow-upload',method='POST',body=body)
+        self.assertEqual(status,200)
+        self.assertEqual(json.loads(b)['sha256'],hashlib.sha256(body).hexdigest())
+    def test_upstream_header_limit(self):
+        self.assertEqual(self.query('/proxy/big-header')[0],502)
+    def test_incomplete_client_body_closes_upstream(self):
+        s=self.connect()
+        s.sendall(b'POST /proxy/echo HTTP/1.1\r\nHost: x\r\nContent-Length: 100\r\n\r\nabc')
+        s.shutdown(socket.SHUT_WR)
+        self.assertEqual(Reader(s).response()[0],400)
+    def test_client_upload_deadline(self):
+        with socket.socket() as sock: sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
+        config=self.root/'upload-timeout.ufc'
+        config.write_text(self.config.read_text().replace(f'127.0.0.1:{self.port}',f'127.0.0.1:{port}').replace('request_ms 10000','request_ms 200'))
+        with open(self.root/'upload-timeout.log','wb') as log:
+            process=subprocess.Popen([BINARY,'serve','--config',str(config)],stderr=log)
+            try:
+                for _ in range(100):
+                    try: s=socket.create_connection(('127.0.0.1',port),timeout=.1);break
+                    except OSError: time.sleep(.01)
+                else: self.fail('upload-timeout fixture startup')
+                with s:
+                    s.settimeout(2)
+                    s.sendall(b'POST /proxy/echo HTTP/1.1\r\nHost: x\r\nContent-Length: 100\r\n\r\na')
+                    self.assertEqual(Reader(s).response()[0],408)
+            finally:
+                if process.poll() is None: process.terminate()
+                self.assertEqual(process.wait(timeout=3),0)
+
     def test_no_tunnelling_or_arbitrary_destination(self):
         self.assertEqual(self.query(method='CONNECT')[0],405)
         s=self.connect();s.sendall(b'GET http://evil.invalid/ HTTP/1.1\r\nHost: x\r\n\r\n')

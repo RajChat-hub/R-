@@ -1,18 +1,23 @@
-# Feature and release status
+# UNFALTERING 0.2.0-dev feature status
 
-| Milestone | State | Evidence / remaining work |
-|---|---|---|
-| 0 Repository and build foundation | Implemented locally | Existing jdk gitlink, archive pointer and script preserved; original source, CMake, CLI, tests and CI definitions added. Remote GCC Debug/Release, Clang sanitizers/leak checks and 10,000-run HTTP/config fuzz smoke checks passed; see VALIDATION.md. |
-| 1 HTTP/1.1 static server | Initial Linux subset implemented and tested | epoll, framing, GET/HEAD, persistence, limits, filesystem isolation, partial IO and shutdown. Strict unsupported protocol forms are documented. |
-| 2 Configuration and routing | Initial static-routing subset implemented and tested | Strict single-listener config, default/virtual-host roots, global exact and segment-prefix routes. Proxy routes and configurable per-route methods are not implemented. |
-| 3 Reverse proxy | Not implemented | Next critical milestone: nonblocking upstream state machine, framing, streaming/backpressure and trust rules. |
-| 4 TLS | Not implemented | Select/pin maintained TLS dependency and review licensing before integration. |
-| 5 Load balancing / metrics | Not implemented | Needs verified proxy foundation; health and overload tests. |
-| 6 Cache / FastCGI | Not implemented | Implement/test policies and actual PHP-FPM execution separately. |
-| 7 Commercial distribution | Not implemented | Install target exists; packages/service management and commercial release gates remain. |
+| Area | Actual state |
+|---|---|
+| Linux native epoll / HTTP static server | Implemented; original regression suite retained |
+| Stateful bounded HTTP decoding | Implemented for requests and upstream responses; sink backpressure and fragmentation tested |
+| Filesystem/log offloading | Two fixed IO workers; 64 total outstanding work credits; bounded lossy logger |
+| Memory/deadline limits | Per-queue caps, conservative connection reservations, connect/upload/send/response/client-write/drain deadlines |
+| Virtual hosts / routes / CLI | Existing valid example retained; root and configured proxy routes supported |
+| Native HTTP upstream | Implemented; configured numeric IPv4, one connection per transaction, no retries/pooling |
+| Streaming / framing / headers | Fixed/chunked/EOF response handling; strict framing; controlled Host and forwarding metadata |
+| Test and fuzz evidence | See PHASE2.md and evidence directory; native GCC/Clang CI is the final execution route after workspace loss |
+| TLS / HTTPS upstreams | Not implemented |
+| HTTP/2 / HTTP/3 / tunnels | Not implemented |
+| Cache / load balancing / health pools | Not implemented |
+| PHP-FPM / FastCGI | Not implemented |
+| IOCP / kqueue / non-Linux support | Not implemented |
+| Multi-reactor distribution / reload / WAF | Not implemented |
+| Commercial distribution / general availability | Not approved |
 
-Linux x86-64 is the only locally executed platform. macOS and Windows are unsupported and fail configuration explicitly. Runtime is single-threaded; worker distribution and a complete portable IO abstraction remain future work. SIGHUP reload is not supported. There is no publicly deployed service or production URL.
+Known operational limits: regular-file worker calls can block on pathological storage and delay thread joining; logger drops records on saturation and is not an audit trail; memory reservations are not a hard process RSS limit; timeouts bound finite streams rather than providing unlimited SSE sessions. Strict unsupported protocol forms are rejected. No Nginx capacity or superiority claim is made.
 
-Next: implement a bounded nonblocking HTTP upstream client without retries of non-idempotent requests; add hop-by-hop header filtering, explicit handling of forwarded metadata, upstream timeouts and real fault-injection tests. Preserve all existing HTTP/filesystem tests. Then integrate TLS and operational hardening before public deployment.
-
-General availability requires: full native supported-platform CI, extended fuzzing, independent protocol/security review, overload and long-duration validation, licensing approval, actual packaging/upgrade testing, and resolution of the documented IO/parser/logging limitations. No Apache/Nginx performance comparison has run.
+Next engineering gates: sustained stress and fuzz campaigns, ThreadSanitizer where executable, independent protocol/security review, operational failure drills, and then separately implemented TLS. Review the stacked Phase 2 draft without merging the foundation automatically. No public deployment or binary release has occurred.

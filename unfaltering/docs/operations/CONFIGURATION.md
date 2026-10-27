@@ -1,4 +1,4 @@
-# Configuration version 0.1
+# Configuration version 0.2
 
 One `server { ... }` block is required. `listen "numeric-IPv4:port";` and `root "directory";` are required exactly once. More than one listener/server block is not yet supported and fails validation. No reload CLI exists; stop and restart after `--check` succeeds. Never document SIGHUP as a reload operation in this version.
 
@@ -10,7 +10,7 @@ Values terminate with semicolons. Blocks do not. Double-quoted values permit spa
 | max_requests | 100 | 1–10000 per connection |
 | header_bytes | 16384 | 256–65536 |
 | header_count | 100 | 1–200 |
-| body_bytes | 1048576 | 0–1048576 decoded bytes |
+| body_bytes | 1048576 | 0–67108864 decoded streaming bytes |
 | idle_ms | 10000 | 100–60000 |
 | request_ms | 5000 | 100–60000; absolute from first byte, not extended by trickle data |
 | write_ms | 10000 | 100–60000; absolute response deadline |
@@ -33,4 +33,6 @@ Unknown valid Host values use the default root. Duplicate/missing/malformed Host
 
 Routes are global across configured hosts. Exact matches win; otherwise longest prefix wins at a path-segment boundary (`/assets` does not match `/assetsXYZ`). The complete path is retained: `/assets/file.txt` opens `public/assets/file.txt`. Query strings do not participate. Route matching is literal before decoding; percent-encoded alternatives do not select the same route. All selected roots still apply the filesystem security checks. Routing is not an authorization mechanism. GET and HEAD are the only allowed static methods; there is no configurable method extension yet.
 
-Response bodies are never cached (`Cache-Control: no-store`). No proxy, TLS, cache or PHP configuration is accepted yet. Run unprivileged with read-only document roots; do not put secrets in any document root.
+Response bodies are never cached (`Cache-Control: no-store`). Proxy declarations and their stricter buffer requirements are documented in [PROXY.md](PROXY.md). TLS, cache and PHP configuration remain unsupported. Run unprivileged with read-only document roots; do not put secrets in any document root.
+
+Phase 2 adds buffer_bytes (default 65536), memory_budget_bytes (default 67108864) and response_body_bytes (default 1073741824). See PROXY.md for bounds, conservative memory reservations and upstream/proxy-route declarations. Global write_ms is an absolute deadline for static responses and a no-progress deadline for proxy client writes; the upstream response_ms bounds the entire finite proxy transaction.
