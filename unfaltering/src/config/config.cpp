@@ -177,6 +177,10 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
       c.limits.header_bytes = numeric(l, 256, 65536);
     else if (key == "header_count")
       c.limits.header_count = numeric(l, 1, 200);
+    else if (key == "buffer_bytes")
+      c.buffer_bytes = numeric(l, 16384, 262144);
+    else if (key == "memory_budget_bytes")
+      c.memory_budget_bytes = numeric(l, 1048576, 1073741824);
     else if (key == "body_bytes")
       c.limits.body_bytes = numeric(l, 0, 1048576);
     else if (key == "idle_ms")

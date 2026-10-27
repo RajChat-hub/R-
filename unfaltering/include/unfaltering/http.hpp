@@ -21,8 +21,77 @@ struct ParseResult {
   std::size_t consumed = 0;
   int status = 400;
 };
-// Incremental bounded parser: incomplete means retain the bytes and append more.
-// Total input is bounded by the reactor. No network or filesystem side effects.
+enum class Framing { none, fixed, chunked, eof };
+struct MessageHead {
+  std::string method, target, host, authority, phrase;
+  std::vector<std::pair<std::string, std::string>> headers;
+  int status = 0;
+  bool close = false;
+  Framing framing = Framing::none;
+  std::size_t length = 0;
+};
+// Consumes each wire byte once, retaining only bounded metadata. Decoded payload
+// goes to the caller's bounded sink. A header boundary is always returned first.
+class StreamParser {
+public:
+  enum class Stage {
+    first,
+    headers,
+    fixed,
+    chunk_size,
+    chunk_data,
+    chunk_crlf,
+    trailers,
+    eof_body,
+    done,
+    failed
+  };
+
+private:
+  Limits limits_;
+  MessageHead head_;
+  Stage stage_ = Stage::first;
+  std::string line_;
+  std::size_t header_bytes_ = 0, header_count_ = 0, remaining_ = 0, decoded_ = 0, wire_ = 0;
+  unsigned crlf_ = 0;
+  bool response_ = false, head_response_ = false, ready_ = false, host_ = false, length_ = false,
+       te_ = false;
+  int error_ = 400;
+  void fail(int code);
+  void line();
+  void finish_headers();
+
+public:
+  explicit StreamParser(Limits limits = {}, bool response = false, bool head_response = false);
+  std::size_t consume(std::string_view bytes, std::string &sink, std::size_t capacity);
+  void eof();
+  bool ready() const {
+    return ready_;
+  }
+  bool done() const {
+    return stage_ == Stage::done;
+  }
+  bool failed() const {
+    return stage_ == Stage::failed;
+  }
+  int error_status() const {
+    return error_;
+  }
+  const MessageHead &head() const {
+    return head_;
+  }
+  std::size_t decoded_bytes() const {
+    return decoded_;
+  }
+  std::size_t wire_bytes() const {
+    return wire_;
+  }
+  Stage stage() const {
+    return stage_;
+  }
+};
+// Compatibility one-shot helper for existing tests/tools; the reactor owns and
+// reuses a StreamParser instead of repeatedly invoking this helper.
 ParseResult parse_request(std::string_view input, const Limits &limits = {});
 std::string lower(std::string_view input);
 bool valid_host(std::string_view host);

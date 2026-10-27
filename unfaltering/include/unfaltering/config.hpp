@@ -12,6 +12,7 @@ struct Config {
   std::filesystem::path root;
   std::map<std::string, std::filesystem::path> hosts;
   Limits limits;
+  std::size_t buffer_bytes = 65536, memory_budget_bytes = 67108864;
   std::vector<Route> routes;
   unsigned max_connections = 256, max_requests = 100, idle_ms = 10000, request_ms = 5000,
            write_ms = 10000, shutdown_ms = 3000;
