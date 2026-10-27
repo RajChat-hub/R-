@@ -1,0 +1,3 @@
+tests/fuzz/seeds/http/* -text -diff
+# Preserve intentional Markdown hard breaks in the imported owner directive.
+docs/MASTER_DIRECTIVE.md -whitespace

@@ -1,0 +1,21 @@
+{
+  "os": "Linux-6.18.55-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "visible_cpu_count": 9,
+  "binary_sha256": "49e827281f1850b95d037d24c37efb28d374cfe6d120268fcc038ab0d649d896",
+  "python": "3.12.14",
+  "requests": 512,
+  "clients": 8,
+  "payload_bytes": 1024,
+  "tls": false,
+  "connection_reuse": false,
+  "elapsed_seconds": 0.11110771199992087,
+  "requests_per_second": 4608.140972251905,
+  "median_ms": 1.5584725000508115,
+  "p95_ms": 2.5958010000977083,
+  "p99_ms": 5.563351000091643,
+  "child_cpu_seconds": 0.024585999999999997,
+  "child_peak_rss_kib": 13952,
+  "error_count": 0,
+  "scope": "Python client + loopback + warm 1KiB file; development sample, no comparative performance claim"
+}
