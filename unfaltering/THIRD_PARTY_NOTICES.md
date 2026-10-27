@@ -2,7 +2,7 @@
 
 Original first-party C++ code: Copyright (c) 2026 SalesAutoMate. Commercial licensing decision pending owner approval. No project-wide open-source licence has been assigned.
 
-The server runtime uses C++ standard library and Linux libc/kernel interfaces. It does not embed an existing HTTP parser, web server, event loop, cryptographic implementation or TLS library. No copied third-party source is vendored.
+The server runtime uses C++ standard library, POSIX threading and Linux libc/kernel interfaces (including epoll, signalfd and eventfd). It does not embed an existing HTTP parser, web server, event loop, cryptographic implementation or TLS library. No copied third-party source is vendored.
 
 Build/test tooling: GCC (toolchain licensing, including its runtime-library exception where applicable), CMake/CTest (BSD-3-Clause distribution), Python (PSF distribution), clang-format (Apache-2.0 with LLVM exceptions). These tools are not redistributed with the source package. GitHub Actions uses runner-provided Git for public read-only sparse checkout; no third-party action is required. Future binary packaging must review the licences and notices for actual linked runtime libraries; source-only inventory is not a completed binary redistribution/legal review.
 

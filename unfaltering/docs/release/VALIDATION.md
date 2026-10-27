@@ -1,3 +1,5 @@
+> Historical Phase 1 evidence. Current Phase 2 implementation, tests and limitations are in [PHASE2.md](PHASE2.md).
+
 # Validation — 27 October 2026
 
 ## Executed locally
