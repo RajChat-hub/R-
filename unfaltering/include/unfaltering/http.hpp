@@ -52,7 +52,7 @@ private:
   MessageHead head_;
   Stage stage_ = Stage::first;
   std::string line_;
-  std::size_t header_bytes_ = 0, header_count_ = 0, remaining_ = 0, decoded_ = 0, wire_ = 0;
+  std::size_t header_bytes_ = 0, header_count_ = 0, connection_count_ = 0, remaining_ = 0, decoded_ = 0, wire_ = 0;
   unsigned crlf_ = 0;
   bool response_ = false, head_response_ = false, ready_ = false, host_ = false, length_ = false,
        te_ = false;

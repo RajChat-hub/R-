@@ -29,6 +29,10 @@ int main() {
       }
       check(parser.failed()&&parser.error_status()==502,"bad response framing");
     }
+    uf::StreamParser tokens({4096,2,64});
+    std::string ignored;
+    tokens.consume("GET / HTTP/1.1\r\nHost: x\r\nConnection: a,b,c\r\n\r\n",ignored,16);
+    check(tokens.failed()&&tokens.error_status()==431,"bound Connection-nominated metadata");
     uf::StreamParser close({},true);std::string out;
     std::string wire="HTTP/1.0 200 OK\r\n\r\nhello";
     auto n=close.consume(wire,out,16);

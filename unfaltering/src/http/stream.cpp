@@ -180,6 +180,7 @@ void StreamParser::line() {
       }
       for (;;) {
         auto comma = value.find(',');
+        if(++connection_count_>limits_.header_count) {fail(431);return;}
         auto t = trim(value.substr(0, comma));
         if (t.empty() || !std::all_of(t.begin(), t.end(), token)) {
           fail(400);

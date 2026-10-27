@@ -35,7 +35,7 @@ with tempfile.TemporaryDirectory(prefix='unfaltering-demo-') as temp:
         ready(app_port,app)
         server=subprocess.Popen([binary,'serve','--config',str(config)],stderr=subprocess.DEVNULL)
         ready(server_port,server)
-        with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(f'http://127.0.0.1:{server_port}/',timeout=3) as r:
+        with urllib.request.urlopen(f'http://127.0.0.1:{server_port}/',timeout=3) as r:
             if b'UNFALTERING' not in r.read(): raise AssertionError('static example')
         for method,body in [('GET',None),('POST',b'example body')]:
             request=urllib.request.Request(f'http://127.0.0.1:{server_port}/app/hello',data=body,method=method)

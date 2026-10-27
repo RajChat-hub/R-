@@ -323,6 +323,9 @@ class ProxyTests(unittest.TestCase):
                     self.assertEqual(p.wait(timeout=3),0);self.assertLess(time.monotonic()-start,2)
             finally:
                 if p.poll() is None: p.kill();p.wait()
+    def test_connection_token_resource_limit(self):
+        names=b','.join(f'X{i:03}'.encode() for i in range(101))
+        self.assertEqual(self.query(headers=b'Connection: '+names+b'\r\n')[0],431)
     def test_configuration_rejects_bad_declarations(self):
         for extra in ['route prefix "/a" { proxy missing; }','upstream app { address "http://example.com"; }','upstream app { address "127.0.0.1:80"; bogus 1; }','upstream app { address "127.0.0.1:80"; forwarding trust; }','buffer_bytes 16384;']:
             path=self.root/'invalid.ufc';path.write_text(f'server {{ listen "127.0.0.1:8080"; root "."; {extra} }}')

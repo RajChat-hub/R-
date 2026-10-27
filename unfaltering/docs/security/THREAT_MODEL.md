@@ -31,3 +31,5 @@ Shutdown stops accepts, bounds network draining, closes both endpoints and joins
 ## Release limits
 
 No unimplemented TLS, HTTP/2/3, cache, load balancing, FastCGI, multi-reactor, live reload, WAF or non-Linux security capability is claimed. ASan/UBSan and bounded fuzz smoke checks are evidence for tested cases, not proof against all input/resource attacks. ThreadSanitizer, long-duration soak testing, expanded fuzzing, independent review and production operating procedures remain future gates.
+
+Connection-option tokens are capped by header_count across the entire header section, preventing a single comma-heavy Connection field from allocating an unbounded hop-header set. The current build explicitly requires 64-bit Linux; no 32-bit wire-counter compatibility is claimed.
