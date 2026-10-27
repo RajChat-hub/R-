@@ -54,11 +54,13 @@ class EventLog {
   std::thread worker_;
   bool stop_ = false;
   std::size_t dropped_ = 0;
+  std::string final_;
   void work();
 
 public:
   void start();
   ~EventLog();
   void emit(std::string record);
+  void finish(std::string record);
 };
 } // namespace uf

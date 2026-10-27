@@ -4,6 +4,7 @@
 #include <cerrno>
 #include <fcntl.h>
 #include <poll.h>
+#include <signal.h>
 #include <stdexcept>
 #include <sys/eventfd.h>
 namespace uf {
@@ -82,8 +83,8 @@ void IoPool::work() {
       results_.push_back(std::move(result));
     }
     std::uint64_t one = 1;
-    auto ignored = ::write(event_.get(), &one, sizeof one);
-    (void)ignored;
+    ssize_t sent;
+    do {sent=::write(event_.get(),&one,sizeof one);} while(sent<0&&errno==EINTR);
   }
 }
 void EventLog::start() {
@@ -109,25 +110,33 @@ void EventLog::emit(std::string record) {
   queue_.push_back(std::move(record));
   cv_.notify_one();
 }
+void EventLog::finish(std::string record) {
+  std::lock_guard lock(mutex_);
+  if(record.size()<=256) final_=std::move(record);
+}
 void EventLog::work() {
+  sigset_t mask;
+  sigemptyset(&mask);sigaddset(&mask,SIGPIPE);
+  pthread_sigmask(SIG_BLOCK,&mask,nullptr);
   for (;;) {
     std::string record;
+    bool final=false;
     {
       std::unique_lock lock(mutex_);
       cv_.wait(lock, [this] { return stop_ || !queue_.empty(); });
-      if (stop_)
-        return;
-      record = std::move(queue_.front());
-      queue_.pop_front();
+      if(stop_) {record=std::move(final_);final=true;}
+      else {record=std::move(queue_.front());queue_.pop_front();}
     }
     // Pipe/socket sinks are nonblocking. Regular-file writes run only here and
     // depend on the operator's storage; a stuck kernel filesystem cannot safely
     // be cancelled by detaching a C++ thread.
+    if(record.empty()) return;
     pollfd fd{sink_.get(), POLLOUT, 0};
     if (poll(&fd, 1, 50) > 0) {
       auto ignored = ::write(sink_.get(), record.data(), record.size());
       (void)ignored;
     }
+    if(final) return;
   }
 }
 } // namespace uf

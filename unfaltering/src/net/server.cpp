@@ -19,44 +19,40 @@
 #include <sys/socket.h>
 #include <unordered_map>
 #include <vector>
+#include "unfaltering/reactor.hpp"
 namespace uf {
-namespace {
-class Reactor {
-  const Config &cfg;
-  Fd epoll, listener, signals, reserve;
-  std::map<std::string, Fd> roots;
-  std::vector<Fd> route_roots;
-  IoPool io;
-  EventLog log;
-  std::unordered_map<std::uint64_t, Connection> clients;
-  std::uint64_t next_id = 4, requests = 0;
-  bool stopping = false, listener_paused = false;
-  Time stop_at{}, listener_retry{};
-  void add(int fd, std::uint64_t id, std::uint32_t events) {
+void Reactor::add(int fd, std::uint64_t id, std::uint32_t events) {
     epoll_event e{};
     e.events = events;
     e.data.u64 = id;
     if (epoll_ctl(epoll.get(), EPOLL_CTL_ADD, fd, &e) < 0)
       throw std::runtime_error("epoll add failed");
   }
-  bool arm(Connection &c, std::uint64_t id) {
-    epoll_event e{};
-    // A client may shutdown its write half while still reading the response.
-    // RDHUP is relevant while reading only; monitoring it while blocked on
-    // output would repeatedly wake the reactor or prematurely truncate output.
-    e.events = c.writing ? (c.sent < c.output.size() ? static_cast<std::uint32_t>(EPOLLOUT) : 0U)
-                         : static_cast<std::uint32_t>(EPOLLIN | EPOLLRDHUP);
-    e.data.u64 = id;
-    return epoll_ctl(epoll.get(), EPOLL_CTL_MOD, c.socket.get(), &e) == 0;
-  }
-  void erase(std::uint64_t id) {
+
+bool Reactor::arm(Connection &c, std::uint64_t id) {
+  if(c.dead) return false;
+  epoll_event e{};
+  if(c.proxy) {
+    check_proxy_budget(c);
+    auto& p=*c.proxy;
+    if(!p.early&&!c.parser.done()&&!c.eof&&c.input.size()<cfg.buffer_bytes&&p.outgoing.size()-p.sent<cfg.buffer_bytes-32) e.events|=EPOLLIN|EPOLLRDHUP;
+    if(c.sent<c.output.size()) e.events|=EPOLLOUT;
+    if(!sync_upstream(c,id)) return false;
+  } else e.events=c.writing?(c.sent<c.output.size()?static_cast<std::uint32_t>(EPOLLOUT):0U):static_cast<std::uint32_t>(EPOLLIN|EPOLLRDHUP);
+  e.data.u64=id;
+  return epoll_ctl(epoll.get(),EPOLL_CTL_MOD,c.socket.get(),&e)==0;
+}
+
+void Reactor::erase(std::uint64_t id) {
     auto it = clients.find(id);
     if (it != clients.end()) {
+      release_upstream(it->second);
       epoll_ctl(epoll.get(), EPOLL_CTL_DEL, it->second.socket.get(), nullptr);
       clients.erase(it);
     }
   }
-  void prepare(Connection &c, int status, bool head = false) {
+
+void Reactor::prepare(Connection &c, int status, bool head) {
     ++c.epoch;
     c.io_pending = false;
     auto body = reason(status) + "\n";
@@ -70,27 +66,29 @@ class Reactor {
     c.writing = true;
     c.deadline = Clock::now() + ms(cfg.write_ms);
   }
-  void dispatch(Connection &c, std::uint64_t id) {
-    std::string discard;
-    while (!c.parser.done() && !c.parser.failed() && !c.input.empty()) {
-      discard.clear();
-      auto n = c.parser.consume(c.input, discard, 16384);
-      c.input.erase(0, n);
-      if (!n)
-        break;
-    }
-    if (c.parser.failed()) {
-      c.close = true;
-      prepare(c, c.parser.error_status(), c.parser.head().method == "HEAD");
+
+void Reactor::dispatch(Connection &c, std::uint64_t id) {
+  if(c.proxy) {request_pump(c);return;}
+  std::string discard;
+  while(!c.parser.ready()&&!c.parser.failed()&&!c.input.empty()) {
+    auto n=c.parser.consume(c.input,discard,16384);
+    c.input.erase(0,n);
+    if(!n) break;
+  }
+  if(c.parser.ready()&&!c.parser.failed()) {
+    if(auto route=match_route(cfg.routes,c.parser.head().target);route&&!route->upstream.empty()) {
+      start_proxy(c,id,cfg.upstreams.at(route->upstream));
       return;
     }
-    if (!c.parser.done()) {
-      if (c.eof) {
-        c.close = true;
-        prepare(c, 400);
-      }
-      return;
-    }
+  }
+  while(!c.parser.done()&&!c.parser.failed()&&!c.input.empty()) {
+    discard.clear();
+    auto n=c.parser.consume(c.input,discard,16384);
+    c.input.erase(0,n);
+    if(!n) break;
+  }
+  if(c.parser.failed()) {c.close=true;prepare(c,c.parser.error_status(),c.parser.head().method=="HEAD");return;}
+  if(!c.parser.done()) {if(c.eof) {c.close=true;prepare(c,400);}return;}
     const auto &req = c.parser.head();
     ++c.requests;
     ++requests;
@@ -120,7 +118,8 @@ class Reactor {
     }
     c.io_pending = true;
   }
-  bool read_file(Connection &c, std::uint64_t id) {
+
+bool Reactor::read_file(Connection &c, std::uint64_t id) {
     if (c.io_pending)
       return true;
     IoJob job;
@@ -136,7 +135,8 @@ class Reactor {
       c.io_pending = true;
     return true;
   }
-  void completed_io() {
+
+void Reactor::completed_io() {
     for (auto &result : io.take()) {
       auto it = clients.find(result.id);
       if (it == clients.end() || it->second.epoch != result.epoch)
@@ -168,11 +168,14 @@ class Reactor {
         erase(result.id);
     }
   }
-  bool read(Connection &c, std::uint64_t id) {
+
+bool Reactor::read(Connection &c, std::uint64_t id) {
     std::array<char, 8192> buf{};
     std::size_t budget = 65536;
     while (budget > 0) {
-      auto n = recv(c.socket.get(), buf.data(), std::min(buf.size(), budget), 0);
+      auto available=cfg.buffer_bytes-c.input.size();
+      if(!available) return true;
+      auto n = recv(c.socket.get(), buf.data(), std::min({buf.size(),budget,available}),0);
       if (n > 0) {
         if (!c.started) {
           c.started = true;
@@ -188,10 +191,17 @@ class Reactor {
         }
         c.input.append(buf.data(), size);
         dispatch(c, id);
+        if(c.dead) return false;
         if (c.writing)
           return true;
       } else if (n == 0) {
         c.eof = true;
+        if(c.proxy) {
+          c.parser.eof();
+          if(c.parser.failed()) proxy_failure(c,400);
+          else request_pump(c);
+          return !c.dead;
+        }
         if (c.input.empty())
           return false;
         dispatch(c, id);
@@ -205,7 +215,9 @@ class Reactor {
     }
     return true;
   }
-  bool write(Connection &c, std::uint64_t id) {
+
+bool Reactor::write(Connection &c, std::uint64_t id) {
+    if(c.proxy) return proxy_write_client(c,id);
     std::size_t budget = 65536;
     while (budget > 0) {
       if (c.sent == c.output.size()) {
@@ -243,9 +255,12 @@ class Reactor {
     }
     return true;
   }
-  void accept_clients() {
+
+void Reactor::accept_clients() {
     for (unsigned i = 0; i < 64; ++i) {
-      int fd = accept4(listener.get(), nullptr, nullptr, SOCK_NONBLOCK | SOCK_CLOEXEC);
+      sockaddr_in peer{};
+      socklen_t peer_size=sizeof peer;
+      int fd=accept4(listener.get(),reinterpret_cast<sockaddr*>(&peer),&peer_size,SOCK_NONBLOCK|SOCK_CLOEXEC);
       if (fd < 0) {
         if (errno == EINTR)
           continue;
@@ -271,6 +286,9 @@ class Reactor {
       auto id = next_id++;
       auto [it, inserted] = clients.try_emplace(id, fd, cfg);
       (void)inserted;
+      char peer_text[INET_ADDRSTRLEN]{};
+      inet_ntop(AF_INET,&peer.sin_addr,peer_text,sizeof peer_text);
+      it->second.peer=peer_text;
       try {
         add(it->second.socket.get(), id, EPOLLIN | EPOLLRDHUP);
       } catch (...) {
@@ -279,7 +297,8 @@ class Reactor {
       }
     }
   }
-  void stop() {
+
+void Reactor::stop() {
     if (stopping)
       return;
     stopping = true;
@@ -296,15 +315,14 @@ class Reactor {
       erase(id);
   }
 
-public:
-  explicit Reactor(const Config &config) : cfg(config), epoll(epoll_create1(EPOLL_CLOEXEC)) {
+Reactor::Reactor(const Config &config) : cfg(config), epoll(epoll_create1(EPOLL_CLOEXEC)) {
     if (!epoll)
       throw std::runtime_error("epoll creation failed");
     roots.emplace("", open_root(cfg.root));
     for (const auto &[name, path] : cfg.hosts)
       roots.emplace(name, open_root(path));
     for (const auto &route : cfg.routes)
-      route_roots.push_back(open_root(route.root));
+      route_roots.push_back(route.upstream.empty()?open_root(route.root):Fd());
     sigset_t mask;
     sigemptyset(&mask);
     sigaddset(&mask, SIGINT);
@@ -335,7 +353,8 @@ public:
       throw std::runtime_error("bind/listen failed");
     add(listener.get(), 1, EPOLLIN);
   }
-  int run() {
+
+int Reactor::run() {
     log.emit("{\"event\":\"listening\",\"port\":" + std::to_string(cfg.port) + "}\n");
     std::array<epoll_event, 128> events{};
     while (!stopping || !clients.empty()) {
@@ -364,7 +383,16 @@ public:
             accept_clients();
           continue;
         }
-        auto it = clients.find(id);
+        if(auto upstream=upstream_events.find(id);upstream!=upstream_events.end()) {
+        auto client=clients.find(upstream->second);
+        if(client==clients.end()) continue;
+        auto client_id=client->first;
+        auto& c=client->second;
+        try {upstream_event(c,e.events);} catch(const std::exception&) {proxy_failure(c,502);}
+        if(c.dead||!arm(c,client_id)) erase(client_id);
+        continue;
+      }
+      auto it = clients.find(id);
         if (it == clients.end())
           continue;
         auto &c = it->second;
@@ -372,7 +400,10 @@ public:
         try {
           if (e.events & EPOLLERR)
             keep = false;
-          else if (c.writing) {
+          else if(c.proxy) {
+            if(e.events&(EPOLLIN|EPOLLRDHUP|EPOLLHUP)) keep=read(c,id);
+            if(keep&&!c.dead&&(e.events&EPOLLOUT)) keep=write(c,id);
+          } else if (c.writing) {
             if (e.events & EPOLLOUT)
               keep = write(c, id);
             else if (e.events & (EPOLLHUP | EPOLLRDHUP))
@@ -393,6 +424,17 @@ public:
       }
       std::vector<std::uint64_t> drop;
       for (auto &[id, c] : clients) {
+        if(c.proxy) {
+          if(stopping&&now>=stop_at) {drop.push_back(id);continue;}
+          auto& p=*c.proxy;
+          if(p.connecting&&now>=p.connect_deadline) proxy_failure(c,504);
+          else if(!p.finished&&now>=p.response_deadline) proxy_failure(c,504);
+          else if(!p.early&&!p.request_sent&&now>=p.send_deadline) proxy_failure(c,504);
+          else if(!p.early&&!c.parser.done()&&now>=c.upload_deadline) proxy_failure(c,408);
+          else if(c.sent<c.output.size()&&now>=c.write_deadline) c.dead=true;
+          if(c.dead||!arm(c,id)) drop.push_back(id);
+          continue;
+        }
         if (c.writing && !c.io_pending && c.sent == c.output.size() &&
             c.file_sent < c.file_length) {
           if (!read_file(c, id))
@@ -416,12 +458,8 @@ public:
       for (auto id : drop)
         erase(id);
     }
-    log.emit("{\"event\":\"stopped\",\"requests\":" + std::to_string(requests) + "}\n");
+    log.finish("{\"event\":\"stopped\",\"requests\":"+std::to_string(requests)+",\"peak_proxy_queue_bytes\":"+std::to_string(peak_proxy_bytes)+"}\n");
     return 0;
   }
-};
-} // namespace
-int serve(const Config &config) {
-  return Reactor(config).run();
+int serve(const Config& config) {return Reactor(config).run();}
 }
-} // namespace uf

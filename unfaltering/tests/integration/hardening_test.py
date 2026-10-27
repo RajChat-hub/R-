@@ -50,10 +50,10 @@ class Hardening(unittest.TestCase):
             self.assertIsNone(p.poll())
 
     def test_memory_reservation_caps_connection_admission(self):
-        with self.fixture('memory_budget_bytes 1048576;') as (p,port):
+        with self.fixture('memory_budget_bytes 2097152;') as (p,port):
             held=[]
             try:
-                # Default reservation is >400KiB. Two reservations fit, a third
+                # Phase 2 reservation is >700KiB. Two reservations fit, a third
                 # is refused rather than allocating up to max_connections=256.
                 for _ in range(2):held.append(socket.create_connection(('127.0.0.1',port),timeout=1))
                 time.sleep(.05)

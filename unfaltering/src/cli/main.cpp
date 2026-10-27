@@ -7,7 +7,7 @@
 int main(int argc, char **argv) {
   try {
     if (argc == 2 && std::string(argv[1]) == "--version") {
-      std::cout << "UNFALTERING 0.1.0-dev | SalesAutoMate | Linux epoll / HTTP/1.1 development "
+      std::cout << "UNFALTERING 0.2.0-dev | SalesAutoMate | Linux epoll / HTTP/1.1 development "
                    "milestone\n";
       return 0;
     }
@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
         auto fd = uf::open_root(path);
       }
       for (const auto &route : config.routes) {
+        if(!route.upstream.empty()) continue;
         auto fd = uf::open_root(route.root);
       }
       std::cout << "Configuration valid; root directories opened successfully\n";

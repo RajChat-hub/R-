@@ -30,7 +30,7 @@ void StreamParser::finish_headers() {
   }
   bool empty = response_ &&
                (head_response_ || head_.status == 204 || head_.status == 304 || head_.status < 200);
-  if (response_ && head_.status == 204 && (te_ || (length_ && head_.length != 0))) {
+  if (response_ && (head_.status == 204 || head_.status < 200) && (te_ || length_)) {
     fail(400);
     return;
   }

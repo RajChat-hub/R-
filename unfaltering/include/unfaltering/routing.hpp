@@ -9,6 +9,7 @@ struct Route {
   bool exact = true;
   std::string path;
   std::filesystem::path root;
+  std::string upstream{};
 };
 // Exact wins, then longest prefix; prefixes match complete path segments.
 const Route *match_route(const std::vector<Route> &routes, std::string_view target);
