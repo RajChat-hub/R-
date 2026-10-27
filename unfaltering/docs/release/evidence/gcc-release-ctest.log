@@ -1,0 +1,131 @@
+Start testing: Oct 27 10:21 Asia
+----------------------------------------------------------
+1/6 Testing: unit
+1/6 Test: unit
+Command: "/workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/build/uf_unit"
+Directory: /workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/build
+"unit" start time: Oct 27 10:21 Asia
+Output:
+----------------------------------------------------------
+161 unit assertions passed
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"unit" end time: Oct 27 10:21 Asia
+"unit" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/6 Testing: parser_stress
+2/6 Test: parser_stress
+Command: "/workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/build/uf_parser_stress"
+Directory: /workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/build
+"parser_stress" start time: Oct 27 10:21 Asia
+Output:
+----------------------------------------------------------
+20000 seeded mutations passed HTTP/config invariant checks; not coverage-guided fuzz certification
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"parser_stress" end time: Oct 27 10:21 Asia
+"parser_stress" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/6 Testing: cli_version
+3/6 Test: cli_version
+Command: "/workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/build/unfaltering" "--version"
+Directory: /workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/build
+"cli_version" start time: Oct 27 10:21 Asia
+Output:
+----------------------------------------------------------
+UNFALTERING 0.1.0-dev | SalesAutoMate | Linux epoll / HTTP/1.1 development milestone
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"cli_version" end time: Oct 27 10:21 Asia
+"cli_version" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/6 Testing: cli_help
+4/6 Test: cli_help
+Command: "/workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/build/unfaltering" "--help"
+Directory: /workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/build
+"cli_help" start time: Oct 27 10:21 Asia
+Output:
+----------------------------------------------------------
+UNFALTERING Web Server
+Built to Endure. Engineered to Serve.
+Usage:
+  unfaltering --version
+  unfaltering --help
+  unfaltering --check --config FILE
+  unfaltering serve --config FILE
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"cli_help" end time: Oct 27 10:21 Asia
+"cli_help" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/6 Testing: example_config
+5/6 Test: example_config
+Command: "/workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/build/unfaltering" "--check" "--config" "/workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/examples/server.ufc"
+Directory: /workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/build
+"example_config" start time: Oct 27 10:21 Asia
+Output:
+----------------------------------------------------------
+Configuration valid; root directories opened successfully
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"example_config" end time: Oct 27 10:21 Asia
+"example_config" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/6 Testing: network_integration
+6/6 Test: network_integration
+Command: "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12" "/workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/tests/integration/http_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/build/unfaltering"
+Directory: /workspace/scratch/18f9fab883c0/unfaltering-repo/unfaltering/build
+"network_integration" start time: Oct 27 10:21 Asia
+Output:
+----------------------------------------------------------
+test_blocked_writer_deadline (__main__.ServerTests.test_blocked_writer_deadline) ... ok
+test_body_deadline (__main__.ServerTests.test_body_deadline) ... ok
+test_concurrent_reset_and_reuse (__main__.ServerTests.test_concurrent_reset_and_reuse) ... ok
+test_config_rejection (__main__.ServerTests.test_config_rejection) ... ok
+test_connection_limit (__main__.ServerTests.test_connection_limit) ... ok
+test_descriptor_exhaustion_recovery (__main__.ServerTests.test_descriptor_exhaustion_recovery) ... ok
+test_fragmented (__main__.ServerTests.test_fragmented) ... ok
+test_get_head (__main__.ServerTests.test_get_head) ... ok
+test_graceful_shutdown_with_blocked_client (__main__.ServerTests.test_graceful_shutdown_with_blocked_client) ... ok
+test_half_close (__main__.ServerTests.test_half_close) ... ok
+test_half_close_with_backpressure (__main__.ServerTests.test_half_close_with_backpressure) ... ok
+test_head_error_has_no_body (__main__.ServerTests.test_head_error_has_no_body) ... ok
+test_idle_timeout (__main__.ServerTests.test_idle_timeout) ... ok
+test_keep_alive_body_boundaries (__main__.ServerTests.test_keep_alive_body_boundaries) ... ok
+test_large_partial_writes (__main__.ServerTests.test_large_partial_writes) ... ok
+test_limits (__main__.ServerTests.test_limits) ... ok
+test_malformed (__main__.ServerTests.test_malformed) ... ok
+test_paths (__main__.ServerTests.test_paths) ... ok
+test_pipeline_and_limit (__main__.ServerTests.test_pipeline_and_limit) ... ok
+test_request_deadline (__main__.ServerTests.test_request_deadline) ... ok
+test_static_routes (__main__.ServerTests.test_static_routes) ... ok
+test_virtual_host (__main__.ServerTests.test_virtual_host) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 5.510s
+
+OK
+<end of output>
+Test time =   5.56 sec
+----------------------------------------------------------
+Test Passed.
+"network_integration" end time: Oct 27 10:21 Asia
+"network_integration" time elapsed: 00:00:05
+----------------------------------------------------------
+
+End testing: Oct 27 10:21 Asia

@@ -1,0 +1,53 @@
+name: UNFALTERING Linux
+on:
+  push:
+    paths: ['unfaltering/**', '.github/workflows/unfaltering-ci.yml']
+  pull_request:
+    paths: ['unfaltering/**', '.github/workflows/unfaltering-ci.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {compiler: g++, mode: Debug, sanitizers: 'OFF'}
+          - {compiler: g++, mode: Release, sanitizers: 'OFF'}
+          - {compiler: clang++, mode: Debug, sanitizers: 'ON'}
+    steps:
+      - name: Check out public project sources without unrelated submodule setup
+        env:
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --no-recurse-submodules --depth=1 origin "$SOURCE_REVISION"
+          git sparse-checkout set --no-cone /unfaltering/ /.github/
+          git -c advice.detachedHead=false checkout --detach FETCH_HEAD
+      - name: Configure
+        run: cmake -S unfaltering -B unfaltering/build -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DUNFALTERING_SANITIZERS=${{ matrix.sanitizers }}
+      - name: Build
+        run: cmake --build unfaltering/build -j2
+      - name: Test
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1
+        run: ctest --test-dir unfaltering/build --output-on-failure
+  fuzz-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out public project sources without unrelated submodule setup
+        env:
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --no-recurse-submodules --depth=1 origin "$SOURCE_REVISION"
+          git sparse-checkout set --no-cone /unfaltering/ /.github/
+          git -c advice.detachedHead=false checkout --detach FETCH_HEAD
+      - run: cmake -S unfaltering -B unfaltering/build -DCMAKE_CXX_COMPILER=clang++ -DUNFALTERING_FUZZ=ON -DBUILD_TESTING=OFF
+      - run: cmake --build unfaltering/build -j2
+      - run: ./unfaltering/build/uf_fuzz_http unfaltering/tests/fuzz/seeds/http -runs=10000 -max_len=16384
+      - run: ./unfaltering/build/uf_fuzz_config unfaltering/tests/fuzz/seeds/config -runs=10000 -max_len=65536
