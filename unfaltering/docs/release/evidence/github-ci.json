@@ -1,0 +1,162 @@
+{
+  "date": "2026-10-27",
+  "repository": "RajChat-hub/R-",
+  "commit": "04c7a9077f5a894f221c47565cacad803bb08ff8",
+  "push_run": {
+    "id": 40488459793,
+    "url": "https://github.com/RajChat-hub/R-/actions/runs/40488459793",
+    "conclusion": "success"
+  },
+  "pull_request_run": {
+    "id": 40488465032,
+    "url": "https://github.com/RajChat-hub/R-/actions/runs/40488465032",
+    "conclusion": "success"
+  },
+  "jobs": [
+    {
+      "id": 122136071008,
+      "name": "fuzz-smoke",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check out public project sources without unrelated submodule setup",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run cmake -S unfaltering -B unfaltering/build -DCMAKE_CXX_COMPILER=clang++ -DUNFALTERING_FUZZ=ON -DBUILD_TESTING=OFF",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run cmake --build unfaltering/build -j2",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run ./unfaltering/build/uf_fuzz_http unfaltering/tests/fuzz/seeds/http -runs=10000 -max_len=16384",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run ./unfaltering/build/uf_fuzz_config unfaltering/tests/fuzz/seeds/config -runs=10000 -max_len=65536",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 122136071084,
+      "name": "build (g++, Debug, OFF)",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check out public project sources without unrelated submodule setup",
+          "conclusion": "success"
+        },
+        {
+          "name": "Configure",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 122136071157,
+      "name": "build (clang++, Debug, ON)",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check out public project sources without unrelated submodule setup",
+          "conclusion": "success"
+        },
+        {
+          "name": "Configure",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 122136071260,
+      "name": "build (g++, Release, OFF)",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check out public project sources without unrelated submodule setup",
+          "conclusion": "success"
+        },
+        {
+          "name": "Configure",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "clang_excerpts": [
+    "2026-10-27T10:26:25.0331031Z -- The CXX compiler identification is Clang 18.1.3",
+    "2026-10-27T10:26:33.1441252Z   ASAN_OPTIONS: detect_leaks=1:halt_on_error=1",
+    "2026-10-27T10:26:33.1441463Z   UBSAN_OPTIONS: halt_on_error=1",
+    "2026-10-27T10:26:34.1350621Z 1/6 Test #1: unit .............................   Passed    0.37 sec",
+    "2026-10-27T10:26:34.7998530Z 2/6 Test #2: parser_stress ....................   Passed    0.65 sec",
+    "2026-10-27T10:26:34.8083855Z 3/6 Test #3: cli_version ......................   Passed    0.01 sec",
+    "2026-10-27T10:26:34.8151177Z 4/6 Test #4: cli_help .........................   Passed    0.01 sec",
+    "2026-10-27T10:26:34.8247510Z 5/6 Test #5: example_config ...................   Passed    0.01 sec",
+    "2026-10-27T10:26:40.4018967Z 6/6 Test #6: network_integration ..............   Passed    5.58 sec",
+    "2026-10-27T10:26:40.4094035Z 100% tests passed, 0 tests failed out of 6"
+  ],
+  "fuzz_excerpts": [
+    "2026-10-27T10:26:21.0559068Z -- The CXX compiler identification is Clang 18.1.3",
+    "2026-10-27T10:26:25.5349156Z Done 10000 runs in 0 second(s)",
+    "2026-10-27T10:26:26.0606417Z Done 10000 runs in 0 second(s)"
+  ]
+}

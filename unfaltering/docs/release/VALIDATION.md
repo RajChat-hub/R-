@@ -29,10 +29,18 @@ The actual executable used for cmake/ctest locally was `/tmp/unfaltering-tools/c
 
 Socket cases cover GET/HEAD, HEAD errors without bodies, two different host roots, exact/prefix routing, fragmented bytes, fixed/chunked body boundaries, pipelining, maximum requests, duplicate/ambiguous framing, header/body limits, traversal/encoded traversal/symlink escapes, full and half-close behavior, large partial writes, request/body/idle/write deadlines, connection limits, 120 concurrent/reset client attempts, descriptor exhaustion under RLIMIT_NOFILE=24, recovery, and graceful shutdown with blocked output. A real half-close/backpressure truncation defect was reproduced with a failing test and fixed by excluding RDHUP from write-state interest. The regression now passes.
 
+## Verified remote CI
+
+Both GitHub push run 40488459793 and PR run 40488465032 passed at code commit `04c7a9077f5a894f221c47565cacad803bb08ff8`. All four jobs passed: GCC Debug, GCC Release, Clang 18.1.3 Debug with ASan/UBSan and leak detection enabled, and libFuzzer smoke checks. Each compiler test job ran all six CTest groups successfully. HTTP and config fuzzers each completed 10,000 seeded runs. These are bounded smoke campaigns, not exhaustive fuzzing. Observed job/step results and compiler/test excerpts are preserved in `evidence/github-ci.json`; full logs remain at the linked workflow runs. Later evidence-documentation commits do not change the tested C++ source.
+
+https://github.com/RajChat-hub/R-/actions/runs/40488459793
+
+https://github.com/RajChat-hub/R-/actions/runs/40488465032
+
 ## Limits / checks not passed or not run
 
-- LeakSanitizer was attempted and failed at its environment inspection stage: child task entries under `/proc` are inaccessible in this sandbox. It did not produce a successful leak report. ASan/UBSan were rerun with only leak detection disabled and passed. Remote CI is configured to try leak detection on ordinary GitHub runners.
-- Local Clang compilation and libFuzzer execution: NOT RUN. Clang was absent and the system package installer could not write its cache. No false fallback compiler result is claimed. HTTP/config libFuzzer targets and seeded CI smoke commands are supplied; remote execution is separate evidence.
+- LeakSanitizer was attempted and failed at its environment inspection stage: child task entries under `/proc` are inaccessible in this sandbox. It did not produce a successful leak report. ASan/UBSan were rerun with only leak detection disabled and passed. Remote Clang CI subsequently passed with leak detection enabled. This does not remove the local sandbox limitation.
+- Local Clang compilation and libFuzzer execution: NOT RUN. Clang was absent and the system package installer could not write its cache. No false fallback compiler result is claimed. Remote Clang builds and both libFuzzer smoke campaigns subsequently passed as recorded above.
 - TSan, long-duration soak tests, independent security audit and exhaustive RFC conformance: NOT RUN. Runtime is presently single-threaded.
 - Apache/Nginx/Caddy comparative benchmarks: NOT RUN. No performance superiority claim is made.
 - Windows/MSVC, macOS/Apple Clang, IOCP and kqueue: NOT IMPLEMENTED / NOT TESTED.
@@ -44,6 +52,6 @@ Executed `python3 unfaltering/benchmarks/loopback.py unfaltering/build/unfalteri
 
 ## Storage and release
 
-Measured project tree including the single Release build was approximately 2.9 MiB at this checkpoint; temporary CMake tools 78 MiB and formatter 3.8 MiB. This is far below the directive's 16 GiB working target. Final report may include a later exact tree measurement as documents are added.
+Measured project tree including the single Release build was approximately 2.9 MiB at the code-build checkpoint; temporary CMake tools 78 MiB and formatter 3.8 MiB. This is far below the directive's 16 GiB working target. Final report may include a later exact tree measurement as documents are added.
 
-No binary release, deployment, main-branch merge or first-party licence grant has occurred. Remaining capabilities and release gates are recorded in STATUS.md and the threat model. Review the draft PR and actual CI evidence before advancing the milestone.
+No binary release, deployment, main-branch merge or first-party licence grant has occurred. Remaining capabilities and release gates are recorded in STATUS.md and the threat model. The code milestone has passing remote CI; commercial readiness and future features remain separate gates. Review the draft PR before advancing development.

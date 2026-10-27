@@ -2,7 +2,7 @@
 
 | Milestone | State | Evidence / remaining work |
 |---|---|---|
-| 0 Repository and build foundation | Implemented locally | Existing jdk gitlink, archive pointer and script preserved; original source, CMake, CLI, tests and CI definitions added. Remote CI is separate evidence. |
+| 0 Repository and build foundation | Implemented locally | Existing jdk gitlink, archive pointer and script preserved; original source, CMake, CLI, tests and CI definitions added. Remote GCC Debug/Release, Clang sanitizers/leak checks and 10,000-run HTTP/config fuzz smoke checks passed; see VALIDATION.md. |
 | 1 HTTP/1.1 static server | Initial Linux subset implemented and tested | epoll, framing, GET/HEAD, persistence, limits, filesystem isolation, partial IO and shutdown. Strict unsupported protocol forms are documented. |
 | 2 Configuration and routing | Initial static-routing subset implemented and tested | Strict single-listener config, default/virtual-host roots, global exact and segment-prefix routes. Proxy routes and configurable per-route methods are not implemented. |
 | 3 Reverse proxy | Not implemented | Next critical milestone: nonblocking upstream state machine, framing, streaming/backpressure and trust rules. |
