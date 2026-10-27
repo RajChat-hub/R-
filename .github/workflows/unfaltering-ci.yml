@@ -34,6 +34,7 @@ jobs:
         env:
           ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
           UBSAN_OPTIONS: halt_on_error=1
+          UNFALTERING_INSTRUMENTED: ${{ matrix.sanitizers }}
         run: ctest --test-dir unfaltering/build --output-on-failure
   fuzz-smoke:
     runs-on: ubuntu-24.04
@@ -51,3 +52,4 @@ jobs:
       - run: cmake --build unfaltering/build -j2
       - run: ./unfaltering/build/uf_fuzz_http unfaltering/tests/fuzz/seeds/http -runs=10000 -max_len=16384
       - run: ./unfaltering/build/uf_fuzz_config unfaltering/tests/fuzz/seeds/config -runs=10000 -max_len=65536
+      - run: ./unfaltering/build/uf_fuzz_response unfaltering/tests/fuzz/seeds/response -runs=10000 -max_len=16384
