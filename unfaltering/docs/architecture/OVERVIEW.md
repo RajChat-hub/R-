@@ -1,6 +1,6 @@
-# Phase 2 architecture
+# Phase 3 architecture
 
-The native runtime remains original C++20 and Linux epoll. Core HTTP, routing, framing and upstream orchestration do not delegate to a server or event framework.
+The native runtime remains original C++20 and Linux epoll. OpenSSL 3 supplies TLS cryptography without replacing scheduling, HTTP parsing or routing. Core HTTP, routing, framing and upstream orchestration do not delegate to a server or event framework.
 
 ## Ownership and components
 
@@ -28,8 +28,16 @@ Four wire queues are individually limited to buffer_bytes. Header/count and deco
 
 Network event work is capped at 64 KiB and file jobs at 16 KiB. The request deadline is absolute; downstream write timeout detects lack of write progress for proxy responses. The configured absolute upstream response deadline also bounds a streamed transaction. SIGTERM/SIGINT stop accepts and drain active work up to shutdown_ms, then close both endpoints. C++ threads are joined rather than detached.
 
-A kernel operation stuck on an untrustworthy filesystem is not safely cancellable by C++ thread teardown. The reactor remains isolated while worker credits are exhausted, but worker joining may exceed the network drain deadline in that pathological case. Logging to regular files has the same trusted-storage requirement. There is no hard real-time shutdown claim.
+A kernel operation stuck on an untrustworthy filesystem is not safely cancellable by C++ thread teardown. The reactor remains isolated while worker credits are exhausted, but worker queued jobs are cancelled on shutdown, but joining active calls may exceed the network drain deadline in that pathological case. Logging to regular files has the same trusted-storage requirement. There is no hard real-time shutdown claim.
 
 References: RFC 9110 https://www.rfc-editor.org/rfc/rfc9110.html and RFC 9112 https://www.rfc-editor.org/rfc/rfc9112.html. This is a deliberately strict HTTP/1.x subset, not exhaustive conformance.
 
 An exact write-budget completion is finalized even when no further readiness event will arrive. The completed transaction is reset immediately, allowing its next keep-alive request. The absolute response deadline also covers final downstream queue draining; write-progress alone cannot extend a transaction indefinitely.
+
+## TLS ownership and operational hardening
+
+`src/tls/tls.cpp` owns SSL_CTX/SSL lifecycle, policy, stable bounded retry buffers and WANT readiness translation. `Tls` objects are per endpoint, owned by Connection/ProxyTransaction. Contexts and trust stores are validated before listener creation and shared for the process lifetime; SSL operations run only on the reactor. Upstream TCP destinations remain numeric/configured, with separate explicit SAN verification identity and SNI. No DNS or insecure bypass exists.
+
+The reactor adds handshake and close phases to client lifecycle and includes upstream TLS handshake in its connection deadline. Buffered TLS plaintext is pumped on bounded sweeps. Partial write retries preserve a fixed snapshot across queue moves. Graceful client close exchanges close_notify within a deadline; errors/drain expiry force cleanup. Upstreams remain one transaction per connection, with best-effort close_notify, no pooling or retry. Authenticated queued bytes are parsed before classifying a terminal transport error: exact fixed/chunked boundaries may finish, whereas incomplete or close-delimited messages cannot treat TLS truncation as success.
+
+TLS admission adds 512 KiB per downstream connection for up to two TLS endpoints; it is not a hard allocator/RSS cap. Native process-RSS and owned endpoint high-water diagnostics complement queue limits. See operations/TLS.md for explicit tested budgets and limitations. The IO pool cancels not-started jobs on shutdown while joining active calls. Focused TSan, socketpair WANT/partial IO, TLS fault/resource tests, timed concurrency drills and differential fragmented-parser fuzzing are documented in PHASE3.md.

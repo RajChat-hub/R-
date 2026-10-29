@@ -39,6 +39,7 @@ public:
   IoPool();
   ~IoPool();
   void start();
+  void shutdown(); // Cancel queued work; active syscalls are joined, never terminated.
   bool submit(IoJob job);
   std::deque<IoResult> take();
   int event_fd() const {
@@ -62,5 +63,6 @@ public:
   ~EventLog();
   void emit(std::string record);
   void finish(std::string record);
+  std::size_t dropped();
 };
 } // namespace uf

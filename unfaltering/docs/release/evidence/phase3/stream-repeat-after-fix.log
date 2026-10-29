@@ -1,0 +1,32 @@
+stream iteration 0
+stream iteration 1
+stream iteration 2
+stream iteration 3
+stream iteration 4
+stream iteration 5
+stream iteration 6
+stream iteration 7
+stream iteration 8
+stream iteration 9
+stream iteration 10
+stream iteration 11
+stream iteration 12
+stream iteration 13
+stream iteration 14
+stream iteration 15
+stream iteration 16
+stream iteration 17
+stream iteration 18
+stream iteration 19
+stream iteration 20
+stream iteration 21
+stream iteration 22
+stream iteration 23
+stream iteration 24
+stream iteration 25
+stream iteration 26
+stream iteration 27
+stream iteration 28
+stream iteration 29
+TLS native resource high-water: {'rss_kib': 23552, 'peak_network_endpoints': 2, 'event': 'stopped', 'requests': 30, 'peak_proxy_queue_bytes': 131072} RSS test ceiling KiB: 196608
+TLS diagnostics: [{"event": "tls_error", "upstream": false, "code": 167772454, "verify": 0}, {"event": "tls_error", "upstream": true, "code": 167772454, "verify": 0}, {"event": "tls_error", "upstream": true, "code": 167772454, "verify": 0}, {"event": "tls_error", "upstream": true, "code": 167772454, "verify": 0}, {"event": "tls_error", "upstream": true, "code": 167772454, "verify": 0}]

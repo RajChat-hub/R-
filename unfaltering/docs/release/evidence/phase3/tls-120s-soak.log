@@ -1,0 +1,3 @@
+{"tls_seconds": 120.04536118000033, "clients": 8, "transactions": 21455, "injected_disconnects": 1946}
+TLS native resource high-water: {'rss_kib': 23424, 'peak_network_endpoints': 17, 'event': 'stopped', 'requests': 21455, 'peak_proxy_queue_bytes': 131072} RSS test ceiling KiB: 196608
+TLS diagnostics: [{"event": "tls_error", "upstream": false, "code": 167772454, "verify": 0}]

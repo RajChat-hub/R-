@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <stdexcept>
 #include <sys/epoll.h>
+#include <sys/resource.h>
 #include <sys/signalfd.h>
 #include <sys/socket.h>
 #include <unordered_map>
@@ -32,6 +33,10 @@ void Reactor::add(int fd, std::uint64_t id, std::uint32_t events) {
 bool Reactor::arm(Connection &c, std::uint64_t id) {
   if(c.dead) return false;
   epoll_event e{};
+  if(c.tls&&(!c.tls->ready()||c.tls_closing)) {
+    e.events=c.tls->interest(0);e.data.u64=id;
+    return epoll_ctl(epoll.get(),EPOLL_CTL_MOD,c.socket.get(),&e)==0;
+  }
   if(c.proxy) {
     check_proxy_budget(c);
     auto& p=*c.proxy;
@@ -39,10 +44,23 @@ bool Reactor::arm(Connection &c, std::uint64_t id) {
     if(c.sent<c.output.size()) e.events|=EPOLLOUT;
     if(!sync_upstream(c,id)) return false;
   } else e.events=c.writing?(c.sent<c.output.size()?static_cast<std::uint32_t>(EPOLLOUT):0U):static_cast<std::uint32_t>(EPOLLIN|EPOLLRDHUP);
+  if(c.tls)e.events=c.tls->interest(e.events);
   e.data.u64=id;
   return epoll_ctl(epoll.get(),EPOLL_CTL_MOD,c.socket.get(),&e)==0;
 }
 
+void Reactor::tls_diagnostic(const Tls& tls,bool upstream) {
+  log.emit("{\"event\":\"tls_error\",\"upstream\":"+std::string(upstream?"true":"false")+
+    ",\"code\":"+std::to_string(tls.error)+",\"verify\":"+std::to_string(tls.verification)+"}\n");
+}
+bool Reactor::tls_close(Connection& c) {
+  if(!c.tls||!c.tls->ready()||!c.graceful||c.dead)return false;
+  if(!c.tls_closing) {
+    c.tls_closing=true;c.tls_deadline=Clock::now()+ms(cfg.tls.shutdown_ms);
+    release_upstream(c);c.proxy.reset();
+  }
+  return c.tls->shutdown()==0;
+}
 void Reactor::erase(std::uint64_t id) {
     auto it = clients.find(id);
     if (it != clients.end()) {
@@ -175,7 +193,8 @@ bool Reactor::read(Connection &c, std::uint64_t id) {
     while (budget > 0) {
       auto available=cfg.buffer_bytes-c.input.size();
       if(!available) return true;
-      auto n = recv(c.socket.get(), buf.data(), std::min({buf.size(),budget,available}),0);
+      auto length=std::min({buf.size(),budget,available});
+      auto n = c.tls?c.tls->read(buf.data(),length):recv(c.socket.get(),buf.data(),length,0);
       if (n > 0) {
         if (!c.started) {
           c.started = true;
@@ -202,8 +221,7 @@ bool Reactor::read(Connection &c, std::uint64_t id) {
           else request_pump(c);
           return !c.dead;
         }
-        if (c.input.empty())
-          return false;
+        if (c.input.empty()) {if(c.tls)c.graceful=true;return false;}
         dispatch(c, id);
         return true;
       } else if (errno == EINTR)
@@ -228,8 +246,7 @@ bool Reactor::write(Connection &c, std::uint64_t id) {
           c.output.clear();
           c.sent = 0;
           c.writing = false;
-          if (c.close || stopping)
-            return false;
+          if (c.close || stopping) {c.graceful=true;return false;}
           c.parser = StreamParser(cfg.limits);
           c.started = !c.input.empty();
           c.deadline = Clock::now() + ms(c.started ? cfg.request_ms : cfg.idle_ms);
@@ -240,8 +257,8 @@ bool Reactor::write(Connection &c, std::uint64_t id) {
         }
       }
       if(c.sent==c.output.size())return true; // Waiting for bounded file completion.
-      auto n = send(c.socket.get(), c.output.data() + c.sent,
-                    std::min(budget, c.output.size() - c.sent), MSG_NOSIGNAL);
+      auto length=std::min(budget,c.output.size()-c.sent);
+      auto n = c.tls?c.tls->write(c.output.data()+c.sent,length):send(c.socket.get(),c.output.data()+c.sent,length,MSG_NOSIGNAL);
       if (n > 0) {
         auto size = static_cast<std::size_t>(n);
         c.sent += size;
@@ -290,7 +307,11 @@ void Reactor::accept_clients() {
       inet_ntop(AF_INET,&peer.sin_addr,peer_text,sizeof peer_text);
       it->second.peer=peer_text;
       try {
-        add(it->second.socket.get(), id, EPOLLIN | EPOLLRDHUP);
+        if(tls_listener) {
+          it->second.tls=std::make_unique<Tls>(tls_listener.get(),fd);
+          it->second.tls_deadline=Clock::now()+ms(cfg.tls.handshake_ms);
+        }
+        add(it->second.socket.get(), id, tls_listener?static_cast<std::uint32_t>(EPOLLIN|EPOLLOUT):static_cast<std::uint32_t>(EPOLLIN|EPOLLRDHUP));
       } catch (...) {
         clients.erase(id);
         throw;
@@ -308,8 +329,10 @@ void Reactor::stop() {
     std::vector<std::uint64_t> drop;
     for (auto &[id, c] : clients) {
       c.close = true;
-      if (!c.writing)
-        drop.push_back(id);
+      if (!c.writing) {
+        c.graceful=true;
+        if(!tls_close(c)||!arm(c,id))drop.push_back(id);
+      }
     }
     for (auto id : drop)
       erase(id);
@@ -318,6 +341,8 @@ void Reactor::stop() {
 Reactor::Reactor(const Config &config) : cfg(config), epoll(epoll_create1(EPOLL_CLOEXEC)) {
     if (!epoll)
       throw std::runtime_error("epoll creation failed");
+    tls_listener=listener_context(cfg);
+    for(const auto& [name,u]:cfg.upstreams) if(u.tls)tls_upstreams.emplace(name,upstream_context(u));
     roots.emplace("", open_root(cfg.root));
     for (const auto &[name, path] : cfg.hosts)
       roots.emplace(name, open_root(path));
@@ -327,8 +352,10 @@ Reactor::Reactor(const Config &config) : cfg(config), epoll(epoll_create1(EPOLL_
     sigemptyset(&mask);
     sigaddset(&mask, SIGINT);
     sigaddset(&mask, SIGTERM);
+    sigaddset(&mask, SIGPIPE);
     if (sigprocmask(SIG_BLOCK, &mask, nullptr) < 0)
       throw std::runtime_error("signal mask failed");
+    sigdelset(&mask,SIGPIPE);
     signals.reset(signalfd(-1, &mask, SFD_NONBLOCK | SFD_CLOEXEC));
     if (!signals)
       throw std::runtime_error("signalfd failed");
@@ -400,23 +427,33 @@ int Reactor::run() {
         try {
           if (e.events & EPOLLERR)
             keep = false;
-          else if(c.proxy) {
-            if(e.events&(EPOLLIN|EPOLLRDHUP|EPOLLHUP)) keep=read(c,id);
-            if(keep&&!c.dead&&(e.events&EPOLLOUT)) keep=write(c,id);
+          else if(c.tls&&c.tls_closing) keep=tls_close(c);
+          else if(c.tls&&!c.tls->ready()) {
+            int result=c.tls->handshake();
+            if(result<0) {tls_diagnostic(*c.tls,false);keep=false;}
+            else if(result==1) {
+              c.deadline=Clock::now()+ms(cfg.idle_ms);
+              keep=read(c,id);
+            }
+          } else if(c.proxy) {
+            if(c.tls?c.tls->readable(e.events):(e.events&(EPOLLIN|EPOLLRDHUP|EPOLLHUP))) keep=read(c,id);
+            if(keep&&!c.dead&&(c.tls?c.tls->writable(e.events):(e.events&EPOLLOUT))) keep=write(c,id);
           } else if (c.writing) {
-            if (e.events & EPOLLOUT)
+            if (c.tls?c.tls->writable(e.events):(e.events & EPOLLOUT))
               keep = write(c, id);
             else if (e.events & (EPOLLHUP | EPOLLRDHUP))
               keep = false;
-          } else if (e.events & (EPOLLIN | EPOLLRDHUP | EPOLLHUP))
+          } else if (c.tls?c.tls->readable(e.events):(e.events & (EPOLLIN | EPOLLRDHUP | EPOLLHUP)))
             keep = read(c, id);
         } catch (const std::exception &) {
           keep = false;
           log.emit("{\"event\":\"connection_error\"}\n");
         }
+        if(!keep&&c.graceful)keep=tls_close(c);
         if (!keep || !arm(c, id))
           erase(id);
       }
+      peak_network_endpoints=std::max(peak_network_endpoints,clients.size()+upstream_events.size());
       auto now = Clock::now();
       if (listener_paused && !stopping && now >= listener_retry) {
         add(listener.get(), 1, EPOLLIN);
@@ -424,10 +461,26 @@ int Reactor::run() {
       }
       std::vector<std::uint64_t> drop;
       for (auto &[id, c] : clients) {
+        if(c.tls) {
+          if(c.tls_closing||!c.tls->ready()) {
+            if(now>=c.tls_deadline||(stopping&&now>=stop_at))drop.push_back(id);
+            continue;
+          }
+          // OpenSSL can retain plaintext after socket readiness has drained.
+          if(c.tls->pending()&&(!c.writing||c.proxy)&&c.input.size()<cfg.buffer_bytes) {
+            bool keep=read(c,id);
+            if(!keep||c.dead) {drop.push_back(id);continue;}
+            if(!arm(c,id)) {drop.push_back(id);continue;}
+          }
+        }
         if(c.proxy) {
           if(stopping&&now>=stop_at) {drop.push_back(id);continue;}
+          if(c.proxy->tls&&c.proxy->socket&&c.proxy->tls->ready()&&c.proxy->tls->pending()&&c.proxy->incoming.size()<cfg.buffer_bytes) {
+            upstream_read(c);
+            if(!c.proxy) {if(c.dead||!arm(c,id))drop.push_back(id);continue;}
+          }
           auto& p=*c.proxy;
-          if(p.connecting&&now>=p.connect_deadline) proxy_failure(c,504);
+          if((p.connecting||(p.tls&&!p.tls->ready()))&&now>=p.connect_deadline) proxy_failure(c,504);
           else if(now>=p.response_deadline) proxy_failure(c,504);
           else if(!p.early&&!p.request_sent&&now>=p.send_deadline) proxy_failure(c,504);
           else if(!p.early&&!c.parser.done()&&now>=c.upload_deadline) proxy_failure(c,408);
@@ -445,8 +498,10 @@ int Reactor::run() {
           continue;
         }
         if (now >= c.deadline) {
-          if (c.writing || !c.started)
-            drop.push_back(id);
+          if (c.writing || !c.started) {
+            if(!c.writing) c.graceful=true;
+            if(!tls_close(c)||!arm(c,id))drop.push_back(id);
+          }
           else {
             c.close = true;
             prepare(c, 408);
@@ -458,7 +513,8 @@ int Reactor::run() {
       for (auto id : drop)
         erase(id);
     }
-    log.finish("{\"event\":\"stopped\",\"requests\":"+std::to_string(requests)+",\"peak_proxy_queue_bytes\":"+std::to_string(peak_proxy_bytes)+"}\n");
+    rusage usage{};getrusage(RUSAGE_SELF,&usage);
+    log.finish("{\"rss_kib\":"+std::to_string(usage.ru_maxrss)+",\"peak_network_endpoints\":"+std::to_string(peak_network_endpoints)+",\"event\":\"stopped\",\"requests\":"+std::to_string(requests)+",\"peak_proxy_queue_bytes\":"+std::to_string(peak_proxy_bytes)+"}\n");
     return 0;
   }
 int serve(const Config& config) {return Reactor(config).run();}

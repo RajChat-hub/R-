@@ -1,0 +1,18 @@
+$ curl --fail --silent --show-error --noproxy * --cacert unfaltering/examples/tls-local/ca.crt --resolve localhost:8443:127.0.0.1 https://localhost:8443/
+<!doctype html><html lang="en"><meta charset="utf-8"><title>UNFALTERING</title><h1>UNFALTERING™</h1><p>Built to Endure. Engineered to Serve.</p><p>Served by the original SalesAutoMate C++20 Linux epoll server.</p><p>Development build. Not approved for production.</p></html>
+
+PASS
+$ curl --fail --silent --show-error --noproxy * --cacert unfaltering/examples/tls-local/ca.crt --resolve localhost:8443:127.0.0.1 https://localhost:8443/app/hello
+{"method": "GET", "path": "/app/hello", "bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "host": "app.test", "forwarded_for": "127.0.0.1"}
+PASS
+$ curl --fail --silent --show-error --noproxy * --cacert unfaltering/examples/tls-local/ca.crt --resolve localhost:8443:127.0.0.1 --data hello TLS https://localhost:8443/app/echo
+{"method": "POST", "path": "/app/echo", "bytes": 9, "sha256": "f2fbc3a893b63727c2d02afd8a869d4dd26aa1590e46622694bbf221460c9279", "host": "app.test", "forwarded_for": "127.0.0.1"}
+PASS
+$ curl --fail --silent --show-error --noproxy * --cacert unfaltering/examples/tls-local/ca.crt --resolve localhost:8443:127.0.0.1 --tlsv1.2 --tls-max 1.2 https://localhost:8443/
+<!doctype html><html lang="en"><meta charset="utf-8"><title>UNFALTERING</title><h1>UNFALTERING™</h1><p>Built to Endure. Engineered to Serve.</p><p>Served by the original SalesAutoMate C++20 Linux epoll server.</p><p>Development build. Not approved for production.</p></html>
+
+PASS
+$ curl --fail --silent --show-error --noproxy * --cacert unfaltering/examples/tls-local/ca.crt --resolve localhost:8443:127.0.0.1 --tlsv1.3 --tls-max 1.3 https://localhost:8443/
+<!doctype html><html lang="en"><meta charset="utf-8"><title>UNFALTERING</title><h1>UNFALTERING™</h1><p>Built to Endure. Engineered to Serve.</p><p>Served by the original SalesAutoMate C++20 Linux epoll server.</p><p>Development build. Not approved for production.</p></html>
+
+PASS

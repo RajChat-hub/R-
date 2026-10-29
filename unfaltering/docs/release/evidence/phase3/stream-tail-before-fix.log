@@ -1,0 +1,9 @@
+{"event":"listening","port":58871}
+{"event":"tls_error","upstream":false,"code":167772454,"verify":0}
+{"event":"proxy_response","status":200}
+{"event":"proxy_response","status":200}
+{"event":"proxy_response","status":200}
+{"event":"proxy_response","status":200}
+{"event":"tls_error","upstream":true,"code":167772454,"verify":0}
+{"event":"proxy_failure","status":502,"decoded":134201344,"queued":16384}
+{"rss_kib":23552,"peak_network_endpoints":2,"event":"stopped","requests":4,"peak_proxy_queue_bytes":131072}

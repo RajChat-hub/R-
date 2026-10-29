@@ -10,6 +10,8 @@ class Reactor {
   Fd epoll, listener, signals, reserve;
   std::map<std::string, Fd> roots;
   std::vector<Fd> route_roots;
+  TlsContext tls_listener;
+  std::map<std::string,TlsContext> tls_upstreams;
   IoPool io;
   EventLog log;
   std::unordered_map<std::uint64_t, Connection> clients;
@@ -18,7 +20,7 @@ class Reactor {
   Time stop_at{}, listener_retry{};
 
   std::unordered_map<std::uint64_t,std::uint64_t> upstream_events;
-  std::size_t peak_proxy_bytes=0;
+  std::size_t peak_proxy_bytes=0,peak_network_endpoints=0;
   void check_proxy_budget(Connection& c);
   void start_proxy(Connection& c,std::uint64_t id,const Upstream& u);
   void request_pump(Connection& c);
@@ -34,6 +36,8 @@ class Reactor {
   void add(int fd, std::uint64_t id, std::uint32_t events);
   bool arm(Connection &c, std::uint64_t id);
   void erase(std::uint64_t id);
+  bool tls_close(Connection& c);
+  void tls_diagnostic(const Tls& tls,bool upstream);
   void prepare(Connection &c, int status, bool head = false);
   void dispatch(Connection &c, std::uint64_t id);
   bool read_file(Connection &c, std::uint64_t id);

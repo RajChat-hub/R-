@@ -3,7 +3,9 @@
 #include "config.hpp"
 #include "fd.hpp"
 #include "proxy.hpp"
+#include "tls.hpp"
 #include <memory>
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 namespace uf {
@@ -14,6 +16,9 @@ inline auto ms(unsigned value) {
 }
 struct Connection {
   Fd socket, file;
+  std::unique_ptr<Tls> tls;
+  bool tls_closing=false,graceful=false;
+  Time tls_deadline{};
   StreamParser parser;
   std::string input, output;
   std::size_t sent = 0, file_sent = 0, file_length = 0;
@@ -29,6 +34,7 @@ struct Connection {
       : socket(fd), parser(cfg.limits), deadline(Clock::now() + ms(cfg.idle_ms)) {}
 };
 inline std::size_t connection_reservation(const Config &c) {
-  return 8 * c.limits.header_bytes + 8 * c.buffer_bytes + 512 * c.limits.header_count + 32768;
+  return 8 * c.limits.header_bytes + 8 * c.buffer_bytes + 512 * c.limits.header_count + 32768 +
+    ((c.tls.enabled||std::any_of(c.upstreams.begin(),c.upstreams.end(),[](const auto& item){return item.second.tls;}))?524288U:0U);
 }
 } // namespace uf

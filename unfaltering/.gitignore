@@ -4,3 +4,6 @@
 *.pem
 *.key
 __pycache__/
+/examples/tls-local/
+*.key
+*.pem
