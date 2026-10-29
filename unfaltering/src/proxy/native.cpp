@@ -32,13 +32,15 @@ void Reactor::release_upstream(Connection& c) {
   if(p.registered&&p.socket) epoll_ctl(epoll.get(),EPOLL_CTL_DEL,p.socket.get(),nullptr);
   p.registered=false;
   upstream_events.erase(p.event);
+  if(p.tls&&p.tls->ready()) (void)p.tls->shutdown(); // Best-effort close_notify; never pool this socket.
+  p.tls.reset();
   p.socket.reset();
 }
 void Reactor::proxy_failure(Connection& c,int status) {
   release_upstream(c);
   c.proxy.reset();
   c.close=true;
-  if(c.committed) {c.dead=true;return;}
+  if(c.committed||(c.tls&&c.tls->write_pending())) {c.dead=true;return;}
   c.input.clear();c.output.clear();c.sent=0;
   prepare(c,status,c.parser.head().method=="HEAD");
 }
@@ -55,7 +57,7 @@ void Reactor::start_proxy(Connection& c,std::uint64_t id,const Upstream& u) {
   p.connect_deadline=Clock::now()+ms(u.connect_ms);
   p.response_deadline=Clock::now()+ms(u.response_ms);
   p.send_deadline=Clock::now()+ms(u.write_ms);
-  p.outgoing=upstream_request(c.parser.head(),u,c.peer);
+  p.outgoing=upstream_request(c.parser.head(),u,c.peer,c.tls!=nullptr);
   if(p.outgoing.size()>cfg.buffer_bytes) {proxy_failure(c,431);return;}
   p.socket.reset(socket(AF_INET,SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC,0));
   if(!p.socket) {proxy_failure(c,503);return;}
@@ -64,6 +66,11 @@ void Reactor::start_proxy(Connection& c,std::uint64_t id,const Upstream& u) {
   int rc=connect(p.socket.get(),reinterpret_cast<sockaddr*>(&addr),sizeof addr);
   if(rc<0&&errno!=EINPROGRESS) {proxy_failure(c,502);return;}
   p.connecting=rc<0;
+  if(u.tls) {
+    SSL_CTX* ctx=nullptr;
+    for(const auto& [name,target]:cfg.upstreams)if(&target==&u)ctx=tls_upstreams.at(name).get();
+    p.tls=std::make_unique<Tls>(ctx,p.socket.get(),&u);
+  }
   upstream_events.emplace(p.event,id);
   request_pump(c);
   if(c.proxy&&!sync_upstream(c,id)) proxy_failure(c,502);
@@ -78,6 +85,7 @@ bool Reactor::sync_upstream(Connection& c,std::uint64_t id) {
     if(p.sent<p.outgoing.size()&&!p.early) interest|=EPOLLOUT;
     if(!p.finished&&p.incoming.size()<cfg.buffer_bytes) interest|=EPOLLIN|EPOLLRDHUP;
   }
+  if(!p.connecting&&p.tls) interest=p.tls->interest(interest);
   if(!interest) {
     if(p.registered) epoll_ctl(epoll.get(),EPOLL_CTL_DEL,p.socket.get(),nullptr);
     p.registered=false;
@@ -170,7 +178,8 @@ void Reactor::upstream_write(Connection& c) {
     if(!c.proxy) return;
     auto& p=*c.proxy;
     if(p.early||p.sent==p.outgoing.size()) return;
-    auto n=send(p.socket.get(),p.outgoing.data()+p.sent,std::min(budget,p.outgoing.size()-p.sent),MSG_NOSIGNAL);
+    auto length=std::min(budget,p.outgoing.size()-p.sent);
+    auto n=p.tls?p.tls->write(p.outgoing.data()+p.sent,length):send(p.socket.get(),p.outgoing.data()+p.sent,length,MSG_NOSIGNAL);
     if(n>0) {auto size=static_cast<std::size_t>(n);p.sent+=size;budget-=size;request_pump(c);}
     else if(n<0&&errno==EINTR) continue;
     else if(n<0&&(errno==EAGAIN||errno==EWOULDBLOCK)) return;
@@ -186,7 +195,8 @@ void Reactor::upstream_read(Connection& c) {
     auto& p=*c.proxy;
     auto available=cfg.buffer_bytes-p.incoming.size();
     if(!available) return;
-    auto n=recv(p.socket.get(),bytes.data(),std::min({bytes.size(),available,budget}),0);
+    auto length=std::min({bytes.size(),available,budget});
+    auto n=p.tls?p.tls->read(bytes.data(),length):recv(p.socket.get(),bytes.data(),length,0);
     if(n>0) {auto size=static_cast<std::size_t>(n);p.incoming.append(bytes.data(),size);budget-=size;response_pump(c);}
     else if(n==0) {p.eof=true;release_upstream(c);response_pump(c);return;}
     else if(errno==EINTR) continue;
@@ -203,15 +213,21 @@ void Reactor::upstream_event(Connection& c,std::uint32_t events) {
     if(getsockopt(p.socket.get(),SOL_SOCKET,SO_ERROR,&error,&length)<0||error) {proxy_failure(c,502);return;}
     p.connecting=false;
   }
+  if(p.tls&&!p.tls->ready()) {
+    auto result=p.tls->handshake();
+    if(result<0) {tls_diagnostic(*p.tls,true);proxy_failure(c,502);return;}
+    if(result==0)return;
+    events|=EPOLLOUT; // Start sending on the successful handshake transition.
+  }
   if(events&EPOLLERR) {proxy_failure(c,502);return;}
-  if(events&(EPOLLIN|EPOLLHUP|EPOLLRDHUP)) upstream_read(c);
-  if(c.proxy&&c.proxy->socket&&(events&EPOLLOUT)) upstream_write(c);
+  if(p.tls?p.tls->readable(events):(events&(EPOLLIN|EPOLLHUP|EPOLLRDHUP))) upstream_read(c);
+  if(c.proxy&&c.proxy->socket&&(c.proxy->tls?c.proxy->tls->writable(events):(events&EPOLLOUT))) upstream_write(c);
 }
 bool Reactor::finish_proxy_response(Connection& c,std::uint64_t id) {
   release_upstream(c);
   c.proxy.reset();c.writing=false;c.committed=false;
   c.output.clear();c.sent=0;
-  if(c.close||stopping) return false;
+  if(c.close||stopping) {c.graceful=true;return false;}
   c.parser=StreamParser(cfg.limits);c.started=!c.input.empty();
   c.deadline=Clock::now()+ms(c.started?cfg.request_ms:cfg.idle_ms);
   if(c.started) dispatch(c,id);
@@ -227,7 +243,8 @@ bool Reactor::proxy_write_client(Connection& c,std::uint64_t id) {
       if(c.proxy->finished&&c.proxy->terminator) return finish_proxy_response(c,id);
       return true;
     }
-    auto n=send(c.socket.get(),c.output.data()+c.sent,std::min(budget,c.output.size()-c.sent),MSG_NOSIGNAL);
+    auto length=std::min(budget,c.output.size()-c.sent);
+    auto n=c.tls?c.tls->write(c.output.data()+c.sent,length):send(c.socket.get(),c.output.data()+c.sent,length,MSG_NOSIGNAL);
     if(n>0) {auto size=static_cast<std::size_t>(n);c.sent+=size;budget-=size;c.committed=true;c.write_deadline=Clock::now()+ms(cfg.write_ms);}
     else if(n<0&&errno==EINTR) continue;
     else if(n<0&&(errno==EAGAIN||errno==EWOULDBLOCK)) return true;

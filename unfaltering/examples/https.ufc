@@ -1,0 +1,25 @@
+# Generate local-only certificates with make-test-certs.py; NEVER commit its output.
+server {
+ listen "127.0.0.1:8443";
+ root "www";
+ max_connections 32;
+ memory_budget_bytes 67108864;
+ tls {
+  certificate "tls-local/server.crt";
+  private_key "tls-local/server.key";
+  handshake_ms 3000;
+  shutdown_ms 500;
+ }
+ upstream local_secure_app {
+  address "127.0.0.1:9443";
+  host "app.test";
+  connect_ms 2000;
+  response_ms 15000;
+  tls {
+   verify_name "app.test";
+   sni "app.test";
+   ca_file "tls-local/ca.crt";
+  }
+ }
+ route prefix "/app" { proxy local_secure_app; }
+}

@@ -6,13 +6,22 @@
 #include <map>
 #include <string>
 namespace uf {
+struct ListenerTls {
+  bool enabled=false;
+  std::filesystem::path certificate,private_key;
+  unsigned handshake_ms=3000,shutdown_ms=500;
+};
 struct Upstream {
+  bool tls=false;
+  std::string verify_name,sni;
+  std::filesystem::path ca_file;
   std::string address,host;
   unsigned short port=0;
   unsigned connect_ms=2000,response_ms=10000,write_ms=5000;
   bool forwarding=true;
 };
 struct Config {
+  ListenerTls tls;
   std::string bind = "127.0.0.1";
   unsigned short port = 8080;
   std::filesystem::path root;

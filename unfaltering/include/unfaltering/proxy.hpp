@@ -2,11 +2,13 @@
 #pragma once
 #include "config.hpp"
 #include "fd.hpp"
+#include "tls.hpp"
 #include <chrono>
 #include <cstdint>
 namespace uf {
 struct ProxyTransaction {
   Fd socket;
+  std::unique_ptr<Tls> tls;
   const Upstream* target=nullptr;
   StreamParser response;
   std::string outgoing,incoming;
@@ -19,7 +21,7 @@ struct ProxyTransaction {
   ProxyTransaction(const Config& c,const Upstream& u,bool head)
       :target(&u),response(Limits{c.limits.header_bytes,c.limits.header_count,c.response_body_bytes},true,head) {}
 };
-std::string upstream_request(const MessageHead& request,const Upstream& target,std::string_view peer);
+std::string upstream_request(const MessageHead& request,const Upstream& target,std::string_view peer,bool secure=false);
 std::string downstream_response(const MessageHead& response,bool head,bool close);
 std::string chunk_frame(std::string_view bytes);
 }

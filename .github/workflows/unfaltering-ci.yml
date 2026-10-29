@@ -26,6 +26,12 @@ jobs:
           git -c protocol.version=2 fetch --no-tags --no-recurse-submodules --depth=1 origin "$SOURCE_REVISION"
           git sparse-checkout set --no-cone /unfaltering/ /.github/
           git -c advice.detachedHead=false checkout --detach FETCH_HEAD
+      - name: Update distro-maintained TLS dependency and record versions
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --only-upgrade libssl-dev openssl
+          openssl version -a
+          dpkg-query -W libssl-dev openssl
       - name: Configure
         run: cmake -S unfaltering -B unfaltering/build -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DUNFALTERING_SANITIZERS=${{ matrix.sanitizers }}
       - name: Build
@@ -52,9 +58,28 @@ jobs:
           git -c advice.detachedHead=false checkout --detach FETCH_HEAD
       - run: cmake -S unfaltering -B unfaltering/build -DCMAKE_CXX_COMPILER=clang++ -DUNFALTERING_FUZZ=ON -DBUILD_TESTING=OFF
       - run: cmake --build unfaltering/build -j2
-      - run: ./unfaltering/build/uf_fuzz_http unfaltering/tests/fuzz/seeds/http -runs=10000 -max_len=16384
-      - run: ./unfaltering/build/uf_fuzz_config unfaltering/tests/fuzz/seeds/config -runs=10000 -max_len=65536
-      - run: ./unfaltering/build/uf_fuzz_response unfaltering/tests/fuzz/seeds/response -runs=10000 -max_len=16384
+      - run: ./unfaltering/build/uf_fuzz_http unfaltering/tests/fuzz/seeds/http -max_total_time=90 -max_len=65536 -timeout=3 -rss_limit_mb=768
+      - run: ./unfaltering/build/uf_fuzz_config unfaltering/tests/fuzz/seeds/config -max_total_time=90 -max_len=65536 -timeout=3 -rss_limit_mb=768
+      - run: ./unfaltering/build/uf_fuzz_response unfaltering/tests/fuzz/seeds/response -max_total_time=90 -max_len=65536 -timeout=3 -rss_limit_mb=768
+  thread-sanitizer:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out public project sources without unrelated submodule setup
+        env:
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --no-recurse-submodules --depth=1 origin "$SOURCE_REVISION"
+          git sparse-checkout set --no-cone /unfaltering/ /.github/
+          git -c advice.detachedHead=false checkout --detach FETCH_HEAD
+      - run: cmake -S unfaltering -B unfaltering/build -DCMAKE_BUILD_TYPE=Debug -DUNFALTERING_TSAN=ON
+      - run: cmake --build unfaltering/build -j2
+      - name: Focused races and concurrent socket drills (explicit unsupported-runtime detection)
+        env:
+          UNFALTERING_INSTRUMENTED: 'ON'
+          TSAN_OPTIONS: halt_on_error=1
+        run: python3 unfaltering/tests/run_tsan.py unfaltering/build
   compare-foundation:
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04

@@ -32,5 +32,14 @@ if __name__=='__main__':
     import argparse
     parser=argparse.ArgumentParser()
     parser.add_argument('--port',type=int,default=9000)
+    parser.add_argument('--certificate')
+    parser.add_argument('--private-key')
     args=parser.parse_args()
-    ThreadingHTTPServer(('127.0.0.1',args.port),App).serve_forever()
+    if bool(args.certificate)!=bool(args.private_key):parser.error('both certificate and private-key are required')
+    server=ThreadingHTTPServer(('127.0.0.1',args.port),App)
+    if args.certificate:
+        import ssl
+        ctx=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);ctx.minimum_version=ssl.TLSVersion.TLSv1_2
+        ctx.load_cert_chain(args.certificate,args.private_key)
+        server.socket=ctx.wrap_socket(server.socket,server_side=True)
+    server.serve_forever()

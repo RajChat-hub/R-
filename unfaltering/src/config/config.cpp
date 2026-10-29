@@ -115,6 +115,15 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
       l.error("root is not a directory");
     return p.lexically_normal();
   };
+  auto file_path = [&](const std::string& value) {
+    auto p=std::filesystem::path(value);
+    if(p.is_relative())p=std::filesystem::absolute(file).parent_path()/p;
+    return p.lexically_normal();
+  };
+  auto identity = [&](const std::string& value) {
+    if(value.empty()||value.size()>253||!valid_host(value)||value.find(':')!=value.npos||value.find('*')!=value.npos)
+      l.error("TLS identity requires literal DNS name or numeric IPv4 without port");
+  };
   while (l.word != "}") {
     auto key = l.word;
     if (key.empty())
@@ -144,7 +153,24 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
         auto field=l.word;
         if(field.empty()||!seen.insert(field).second) l.error("duplicate or incomplete upstream");
         l.next();
-        if(field=="address") {
+        if(field=="tls") {
+          u.tls=true;l.need("{");std::set<std::string> tls_keys;
+          while(l.word!="}") {
+            auto option=l.word;
+            if(option.empty()||!tls_keys.insert(option).second) l.error("duplicate or incomplete upstream TLS option");
+            l.next();
+            if(option=="verify_name") {u.verify_name=l.value();identity(u.verify_name);}
+            else if(option=="sni") {auto value=l.value();if(value!="off") {identity(value);u.sni=value;}}
+            else if(option=="ca_file") u.ca_file=file_path(l.value());
+            else l.error("unknown upstream TLS option");
+          }
+          l.need("}");
+          in_addr numeric_identity{};
+          bool ip=inet_pton(AF_INET,u.verify_name.c_str(),&numeric_identity)==1;
+          if(u.verify_name.empty()||!tls_keys.contains("sni")||
+             (ip&&!u.sni.empty())||(!ip&&u.sni!=u.verify_name))
+            l.error("TLS requires verify_name and matching DNS SNI, or sni off for IP identity");
+        } else if(field=="address") {
           auto v=l.value();
           auto colon=v.find(':');
           if(colon==v.npos) l.error("upstream address must be numeric IPv4:port");
@@ -198,7 +224,21 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
     }
     if (!keys.insert(key).second)
       l.error("duplicate key '" + key + "'");
-    if (key == "listen") {
+    if(key=="tls") {
+      c.tls.enabled=true;l.need("{");std::set<std::string> tls_keys;
+      while(l.word!="}") {
+        auto field=l.word;
+        if(field.empty()||!tls_keys.insert(field).second) l.error("duplicate or incomplete listener TLS option");
+        l.next();
+        if(field=="certificate")c.tls.certificate=file_path(l.value());
+        else if(field=="private_key")c.tls.private_key=file_path(l.value());
+        else if(field=="handshake_ms")c.tls.handshake_ms=numeric(l,100,60000);
+        else if(field=="shutdown_ms")c.tls.shutdown_ms=numeric(l,100,5000);
+        else l.error("unknown listener TLS option");
+      }
+      l.need("}");
+      if(c.tls.certificate.empty()||c.tls.private_key.empty()) l.error("TLS certificate and private_key required");
+    } else if (key == "listen") {
       auto address = l.value();
       auto colon = address.find(':');
       if (colon == address.npos)
@@ -251,7 +291,8 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
     if(!route.upstream.empty()&&!c.upstreams.contains(route.upstream)) l.error("proxy route references unknown upstream");
   }
   if(c.buffer_bytes<2*c.limits.header_bytes+1024) l.error("buffer_bytes must fit twice header_bytes plus 1024 bytes");
-  if(8*c.limits.header_bytes+8*c.buffer_bytes+512*c.limits.header_count+32768>c.memory_budget_bytes)
+  if(8*c.limits.header_bytes+8*c.buffer_bytes+512*c.limits.header_count+32768+
+     ((c.tls.enabled||std::any_of(c.upstreams.begin(),c.upstreams.end(),[](const auto& item){return item.second.tls;}))?524288U:0U)>c.memory_budget_bytes)
     l.error("memory budget cannot admit one connection");
   return c;
 }

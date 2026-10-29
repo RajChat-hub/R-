@@ -1,0 +1,51 @@
+test_abrupt_disconnects_and_resets (__main__.TlsTests.test_abrupt_disconnects_and_resets) ... ok
+test_chunked_fragmented_and_pipeline (__main__.TlsTests.test_chunked_fragmented_and_pipeline) ... ok
+test_concurrent_tls_and_admission (__main__.TlsTests.test_concurrent_tls_and_admission) ... FAIL
+test_descriptor_exhaustion_recovery_under_tls (__main__.TlsTests.test_descriptor_exhaustion_recovery_under_tls) ... ok
+test_incomplete_and_slow_handshake_deadline (__main__.TlsTests.test_incomplete_and_slow_handshake_deadline) ... ok
+test_invalid_framing_still_rejected (__main__.TlsTests.test_invalid_framing_still_rejected) ... ok
+test_large_static_and_clean_close_notify (__main__.TlsTests.test_large_static_and_clean_close_notify) ... ok
+test_listener_certificate_verification (__main__.TlsTests.test_listener_certificate_verification) ... ok
+test_protocol_versions_and_alpn (__main__.TlsTests.test_protocol_versions_and_alpn) ... ok
+test_shutdown_with_active_tls (__main__.TlsTests.test_shutdown_with_active_tls) ... ok
+test_startup_validation (__main__.TlsTests.test_startup_validation) ... ok
+test_streaming_backpressure_and_memory (__main__.TlsTests.test_streaming_backpressure_and_memory) ... ok
+test_truncated_tls_eof_is_not_success (__main__.TlsTests.test_truncated_tls_eof_is_not_success) ... ok
+test_unsupported_alpn_rejected (__main__.TlsTests.test_unsupported_alpn_rejected) ... ok
+test_upstream_handshake_timeout (__main__.TlsTests.test_upstream_handshake_timeout) ... ok
+test_upstream_protocols_and_ip_identity (__main__.TlsTests.test_upstream_protocols_and_ip_identity) ... ok
+test_verification_failures_and_cleanup (__main__.TlsTests.test_verification_failures_and_cleanup) ... ok
+test_verified_https_proxy_and_forwarding (__main__.TlsTests.test_verified_https_proxy_and_forwarding) ... ok
+
+======================================================================
+FAIL: test_concurrent_tls_and_admission (__main__.TlsTests.test_concurrent_tls_and_admission)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/tls_test.py", line 186, in test_concurrent_tls_and_admission
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as e:list(e.map(client,range(8)))
+                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py", line 456, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/tls_test.py", line 185, in client
+    for _ in range(12):self.assertEqual(self.query('/proxy/chunk')[2],b'abcdefg')
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'Gateway Timeout\n' != b'abcdefg'
+
+----------------------------------------------------------------------
+Ran 18 tests in 7.191s
+
+FAILED (failures=1)
+TLS native resource high-water: {'rss_kib': 24320, 'peak_network_endpoints': 16, 'event': 'stopped', 'requests': 137, 'peak_proxy_queue_bytes': 131072} RSS test ceiling KiB: 196608
+TLS diagnostics: [{"event": "tls_error", "upstream": false, "code": 167772454, "verify": 0}, {"event": "tls_error", "upstream": false, "code": 167773208, "verify": 0}, {"event": "tls_error", "upstream": false, "code": 167773202, "verify": 0}, {"event": "tls_error", "upstream": false, "code": 167772395, "verify": 0}, {"event": "tls_error", "upstream": true, "code": 167772294, "verify": 62}, {"event": "tls_error", "upstream": true, "code": 167772294, "verify": 62}]

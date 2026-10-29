@@ -1,13 +1,14 @@
 // Copyright (c) 2026 SalesAutoMate. First-party licensing pending.
 #include "unfaltering/server.hpp"
 #include "unfaltering/static.hpp"
+#include "unfaltering/tls.hpp"
 #include <iostream>
 #include <stdexcept>
 #include <string>
 int main(int argc, char **argv) {
   try {
     if (argc == 2 && std::string(argv[1]) == "--version") {
-      std::cout << "UNFALTERING 0.2.0-dev | SalesAutoMate | Linux epoll / HTTP/1.1 development "
+      std::cout << "UNFALTERING 0.3.0-dev | SalesAutoMate | Linux epoll / HTTP/1.1 development "
                    "milestone\n";
       return 0;
     }
@@ -22,6 +23,7 @@ int main(int argc, char **argv) {
       throw std::runtime_error("invalid arguments; use --help");
     auto config = uf::read_config(argv[3]);
     if (std::string(argv[1]) == "--check") {
+      uf::validate_tls(config);
       auto root = uf::open_root(config.root);
       for (const auto &[name, path] : config.hosts) {
         (void)name;
