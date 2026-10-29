@@ -1,0 +1,254 @@
+UpdateCTestConfiguration  from :/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/DartConfiguration.tcl
+Parse Config file:/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/DartConfiguration.tcl
+Test project /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+      Start  1: concurrency_unit
+
+1: Test command: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/uf_concurrency
+1: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+1: Test timeout computed to be: 1500
+1: 4000 concurrent worker completions; 40000 counted log drops; queued cancellation passed
+ 1/17 Test  #1: concurrency_unit .................   Passed    0.03 sec
+test 2
+      Start  2: unit
+
+2: Test command: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/uf_unit
+2: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+2: Test timeout computed to be: 1500
+2: 161 unit assertions passed
+ 2/17 Test  #2: unit .............................   Passed    0.01 sec
+test 3
+      Start  3: streaming_unit
+
+3: Test command: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/uf_stream_unit
+3: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+3: Test timeout computed to be: 1500
+3: streaming fragmentation, work-count, backpressure and worker budget checks passed
+ 3/17 Test  #3: streaming_unit ...................   Passed    0.02 sec
+test 4
+      Start  4: proxy_parser_unit
+
+4: Test command: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/uf_proxy_unit
+4: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+4: Test timeout computed to be: 1500
+4: Response fragmentation, framing and forwarding-policy checks passed
+ 4/17 Test  #4: proxy_parser_unit ................   Passed    0.00 sec
+test 5
+      Start  5: parser_stress
+
+5: Test command: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/uf_parser_stress
+5: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+5: Test timeout computed to be: 1500
+5: 20000 seeded mutations passed HTTP/config invariant checks; not coverage-guided fuzz certification
+ 5/17 Test  #5: parser_stress ....................   Passed    0.25 sec
+test 6
+      Start  6: cli_version
+
+6: Test command: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/unfaltering "--version"
+6: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+6: Test timeout computed to be: 1500
+6: UNFALTERING 0.3.0-dev | SalesAutoMate | Linux epoll / HTTP/1.1 development milestone
+ 6/17 Test  #6: cli_version ......................   Passed    0.00 sec
+test 7
+      Start  7: cli_help
+
+7: Test command: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/unfaltering "--help"
+7: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+7: Test timeout computed to be: 1500
+7: UNFALTERING Web Server
+7: Built to Endure. Engineered to Serve.
+7: Usage:
+7:   unfaltering --version
+7:   unfaltering --help
+7:   unfaltering --check --config FILE
+7:   unfaltering serve --config FILE
+ 7/17 Test  #7: cli_help .........................   Passed    0.00 sec
+test 8
+      Start  8: example_config
+
+8: Test command: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/unfaltering "--check" "--config" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/examples/server.ufc"
+8: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+8: Test timeout computed to be: 1500
+8: Configuration valid; root directories opened successfully
+ 8/17 Test  #8: example_config ...................   Passed    0.00 sec
+test 9
+      Start  9: network_integration
+
+9: Test command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/http_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/unfaltering"
+9: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+9: Test timeout computed to be: 60
+9: test_blocked_writer_deadline (__main__.ServerTests.test_blocked_writer_deadline) ... ok
+9: test_body_deadline (__main__.ServerTests.test_body_deadline) ... ok
+9: test_concurrent_reset_and_reuse (__main__.ServerTests.test_concurrent_reset_and_reuse) ... ok
+9: test_config_rejection (__main__.ServerTests.test_config_rejection) ... ok
+9: test_connection_limit (__main__.ServerTests.test_connection_limit) ... ok
+9: test_descriptor_exhaustion_recovery (__main__.ServerTests.test_descriptor_exhaustion_recovery) ... ok
+9: test_fragmented (__main__.ServerTests.test_fragmented) ... ok
+9: test_get_head (__main__.ServerTests.test_get_head) ... ok
+9: test_graceful_shutdown_with_blocked_client (__main__.ServerTests.test_graceful_shutdown_with_blocked_client) ... ok
+9: test_half_close (__main__.ServerTests.test_half_close) ... ok
+9: test_half_close_with_backpressure (__main__.ServerTests.test_half_close_with_backpressure) ... ok
+9: test_head_error_has_no_body (__main__.ServerTests.test_head_error_has_no_body) ... ok
+9: test_idle_timeout (__main__.ServerTests.test_idle_timeout) ... ok
+9: test_keep_alive_body_boundaries (__main__.ServerTests.test_keep_alive_body_boundaries) ... ok
+9: test_large_partial_writes (__main__.ServerTests.test_large_partial_writes) ... ok
+9: test_limits (__main__.ServerTests.test_limits) ... ok
+9: test_malformed (__main__.ServerTests.test_malformed) ... ok
+9: test_paths (__main__.ServerTests.test_paths) ... ok
+9: test_pipeline_and_limit (__main__.ServerTests.test_pipeline_and_limit) ... ok
+9: test_request_deadline (__main__.ServerTests.test_request_deadline) ... ok
+9: test_static_routes (__main__.ServerTests.test_static_routes) ... ok
+9: test_virtual_host (__main__.ServerTests.test_virtual_host) ... ok
+9: 
+9: ----------------------------------------------------------------------
+9: Ran 22 tests in 5.537s
+9: 
+9: OK
+ 9/17 Test  #9: network_integration ..............   Passed    5.59 sec
+test 10
+      Start 10: hardening_integration
+
+10: Test command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/hardening_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/unfaltering"
+10: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+10: Test timeout computed to be: 60
+10: test_blocked_log_pipe_does_not_stall_network_or_shutdown (__main__.Hardening.test_blocked_log_pipe_does_not_stall_network_or_shutdown) ... ok
+10: test_memory_reservation_caps_connection_admission (__main__.Hardening.test_memory_reservation_caps_connection_admission) ... ok
+10: test_tiny_chunk_fragmentation (__main__.Hardening.test_tiny_chunk_fragmentation) ... ok
+10: 
+10: ----------------------------------------------------------------------
+10: Ran 3 tests in 0.441s
+10: 
+10: OK
+10/17 Test #10: hardening_integration ............   Passed    0.49 sec
+test 11
+      Start 11: proxy_integration
+
+11: Test command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/proxy_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/unfaltering"
+11: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+11: Test timeout computed to be: 120
+11: test_boundary_overflow_never_reaches_client (__main__.ProxyTests.test_boundary_overflow_never_reaches_client) ... ok
+11: test_chunked_request_and_response (__main__.ProxyTests.test_chunked_request_and_response) ... ok
+11: test_client_disconnect_and_recovery (__main__.ProxyTests.test_client_disconnect_and_recovery) ... ok
+11: test_client_upload_deadline (__main__.ProxyTests.test_client_upload_deadline) ... ok
+11: test_close_delimited_response (__main__.ProxyTests.test_close_delimited_response) ... ok
+11: test_configuration_rejects_bad_declarations (__main__.ProxyTests.test_configuration_rejects_bad_declarations) ... ok
+11: test_connection_token_resource_limit (__main__.ProxyTests.test_connection_token_resource_limit) ... ok
+11: test_exact_write_budget_finishes_keepalive_transaction (__main__.ProxyTests.test_exact_write_budget_finishes_keepalive_transaction) ... ok
+11: test_forwarding_and_connection_named_headers (__main__.ProxyTests.test_forwarding_and_connection_named_headers) ... ok
+11: test_fragmented_request (__main__.ProxyTests.test_fragmented_request) ... ok
+11: test_gateway_errors_and_timeout (__main__.ProxyTests.test_gateway_errors_and_timeout) ... ok
+11: test_get_post_and_static (__main__.ProxyTests.test_get_post_and_static) ... ok
+11: test_half_closed_upload_still_receives_response (__main__.ProxyTests.test_half_closed_upload_still_receives_response) ... ok
+11: test_head_no_content_and_informational (__main__.ProxyTests.test_head_no_content_and_informational) ... ok
+11: test_incomplete_client_body_closes_upstream (__main__.ProxyTests.test_incomplete_client_body_closes_upstream) ... ok
+11: test_invalid_upstream_body_framing (__main__.ProxyTests.test_invalid_upstream_body_framing) ... ok
+11: test_invalid_upstream_header_framing (__main__.ProxyTests.test_invalid_upstream_header_framing) ... ok
+11: test_large_stream_and_backpressure (__main__.ProxyTests.test_large_stream_and_backpressure) ... ok
+11: test_memory_bound_with_128_mib_stream (__main__.ProxyTests.test_memory_bound_with_128_mib_stream) ... ok
+11: test_no_tunnelling_or_arbitrary_destination (__main__.ProxyTests.test_no_tunnelling_or_arbitrary_destination) ... ok
+11: test_non_idempotent_failure_is_not_retried (__main__.ProxyTests.test_non_idempotent_failure_is_not_retried) ... ok
+11: test_persistent_pipeline (__main__.ProxyTests.test_persistent_pipeline) ... ok
+11: test_request_backpressure_to_slow_upstream (__main__.ProxyTests.test_request_backpressure_to_slow_upstream) ... ok
+11: test_request_upload_streams_before_completion (__main__.ProxyTests.test_request_upload_streams_before_completion) ... ok
+11: test_shutdown_with_active_proxy (__main__.ProxyTests.test_shutdown_with_active_proxy) ... ok
+11: test_slow_upload_and_early_rejection (__main__.ProxyTests.test_slow_upload_and_early_rejection) ... ok
+11: test_smuggling_is_rejected (__main__.ProxyTests.test_smuggling_is_rejected) ... ok
+11: test_upstream_header_limit (__main__.ProxyTests.test_upstream_header_limit) ... ok
+11: test_upstream_request_send_deadline (__main__.ProxyTests.test_upstream_request_send_deadline) ... ok
+11: test_upstream_timeout_after_commit_truncates (__main__.ProxyTests.test_upstream_timeout_after_commit_truncates) ... ok
+11: 
+11: ----------------------------------------------------------------------
+11: Ran 30 tests in 6.076s
+11: 
+11: OK
+11: Child peak RSS 40924 KiB; peak checked proxy queue bytes 131072
+11/17 Test #11: proxy_integration ................   Passed    6.13 sec
+test 12
+      Start 12: proxy_demo
+
+12: Test command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/demo_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/unfaltering" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/examples"
+12: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+12: Test timeout computed to be: 30
+12: Configuration valid; root directories opened successfully
+12: Shipped configuration + static site + native proxied demo GET/POST passed
+12/17 Test #12: proxy_demo .......................   Passed    0.15 sec
+test 13
+      Start 13: tls_partial_io
+
+13: Test command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/tls_io_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/uf_tls_io"
+13: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+13: Test timeout computed to be: 30
+13: TLS socketpair: verified handshake, 4 MiB exact payload, 5084 WANT retries, mutual close_notify passed
+13/17 Test #13: tls_partial_io ...................   Passed    0.37 sec
+test 14
+      Start 14: tls_demo
+
+14: Test command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/tls_demo_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/unfaltering" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/examples"
+14: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+14: Test timeout computed to be: 30
+14: Configuration valid; root directories opened successfully
+14: Shipped HTTPS config + verified static/GET/POST via shipped HTTPS upstream passed
+14/17 Test #14: tls_demo .........................   Passed    0.52 sec
+test 15
+      Start 15: tls_sustained_concurrency
+
+15: Test command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/tls_soak_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/unfaltering"
+15: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+15: Test timeout computed to be: 180
+15: {"tls_seconds": 30.047537409000142, "clients": 8, "transactions": 5440, "injected_disconnects": 490}
+15: TLS native resource high-water: {'rss_kib': 23552, 'peak_network_endpoints': 17, 'event': 'stopped', 'requests': 5440, 'peak_proxy_queue_bytes': 131072} RSS test ceiling KiB: 196608
+15: TLS diagnostics: [{"event": "tls_error", "upstream": false, "code": 167772454, "verify": 0}]
+15/17 Test #15: tls_sustained_concurrency ........   Passed   31.67 sec
+test 16
+      Start 16: tls_integration
+
+16: Test command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/tls_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/unfaltering"
+16: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+16: Test timeout computed to be: 180
+16: test_abrupt_disconnects_and_resets (__main__.TlsTests.test_abrupt_disconnects_and_resets) ... ok
+16: test_chunked_fragmented_and_pipeline (__main__.TlsTests.test_chunked_fragmented_and_pipeline) ... ok
+16: test_complete_fixed_tls_tail_after_transport_eof (__main__.TlsTests.test_complete_fixed_tls_tail_after_transport_eof) ... ok
+16: test_concurrent_tls_and_admission (__main__.TlsTests.test_concurrent_tls_and_admission) ... ok
+16: test_descriptor_exhaustion_recovery_under_tls (__main__.TlsTests.test_descriptor_exhaustion_recovery_under_tls) ... ok
+16: test_idle_tls_close_notify (__main__.TlsTests.test_idle_tls_close_notify) ... ok
+16: test_incomplete_and_slow_handshake_deadline (__main__.TlsTests.test_incomplete_and_slow_handshake_deadline) ... ok
+16: test_invalid_framing_still_rejected (__main__.TlsTests.test_invalid_framing_still_rejected) ... ok
+16: test_large_static_and_clean_close_notify (__main__.TlsTests.test_large_static_and_clean_close_notify) ... ok
+16: test_listener_certificate_verification (__main__.TlsTests.test_listener_certificate_verification) ... ok
+16: test_protocol_versions_and_alpn (__main__.TlsTests.test_protocol_versions_and_alpn) ... ok
+16: test_shutdown_with_active_tls (__main__.TlsTests.test_shutdown_with_active_tls) ... ok
+16: test_startup_validation (__main__.TlsTests.test_startup_validation) ... ok
+16: test_streaming_backpressure_and_memory (__main__.TlsTests.test_streaming_backpressure_and_memory) ... ok
+16: test_truncated_tls_eof_is_not_success (__main__.TlsTests.test_truncated_tls_eof_is_not_success) ... ok
+16: test_unsupported_alpn_rejected (__main__.TlsTests.test_unsupported_alpn_rejected) ... ok
+16: test_upstream_handshake_timeout (__main__.TlsTests.test_upstream_handshake_timeout) ... ok
+16: test_upstream_protocols_and_ip_identity (__main__.TlsTests.test_upstream_protocols_and_ip_identity) ... ok
+16: test_verification_failures_and_cleanup (__main__.TlsTests.test_verification_failures_and_cleanup) ... ok
+16: test_verified_https_proxy_and_forwarding (__main__.TlsTests.test_verified_https_proxy_and_forwarding) ... ok
+16: 
+16: ----------------------------------------------------------------------
+16: Ran 20 tests in 10.476s
+16: 
+16: OK
+16: TLS native resource high-water: {'rss_kib': 24320, 'peak_network_endpoints': 32, 'event': 'stopped', 'requests': 151, 'peak_proxy_queue_bytes': 131072} RSS test ceiling KiB: 196608
+16: TLS diagnostics: [{"event": "tls_error", "upstream": false, "code": 167772454, "verify": 0}, {"event": "tls_error", "upstream": false, "code": 167773208, "verify": 0}, {"event": "tls_error", "upstream": false, "code": 167773202, "verify": 0}, {"event": "tls_error", "upstream": true, "code": 167772454, "verify": 0}, {"event": "tls_error", "upstream": false, "code": 167772395, "verify": 0}, {"event": "tls_error", "upstream": true, "code": 167772294, "verify": 62}]
+16/17 Test #16: tls_integration ..................   Passed   10.55 sec
+test 17
+      Start 17: sustained_concurrency
+
+17: Test command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/soak_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls/unfaltering"
+17: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tls
+17: Test timeout computed to be: 120
+17: {"seconds": 10.004816363999907, "clients": 8, "transactions": 6286, "injected_disconnects": 694}
+17: Child peak RSS 14464 KiB; peak checked proxy queue bytes 98372
+17/17 Test #17: sustained_concurrency ............   Passed   10.59 sec
+
+100% tests passed out of 17
+
+Total Test time (real) =  66.42 sec

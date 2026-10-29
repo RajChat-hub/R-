@@ -1,0 +1,57 @@
+4000 concurrent worker completions; 40000 counted log drops; queued cancellation passed
+
+UpdateCTestConfiguration  from :/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tsan/DartConfiguration.tcl
+Parse Config file:/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tsan/DartConfiguration.tcl
+Test project /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tsan
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+    Start  1: concurrency_unit
+
+1: Test command: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tsan/uf_concurrency
+1: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tsan
+1: Test timeout computed to be: 1500
+1: 4000 concurrent worker completions; 40000 counted log drops; queued cancellation passed
+1/4 Test  #1: concurrency_unit .................   Passed    0.18 sec
+test 13
+    Start 13: tls_partial_io
+
+13: Test command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/tls_io_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tsan/uf_tls_io"
+13: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tsan
+13: Test timeout computed to be: 30
+13: TLS socketpair: verified handshake, 4 MiB exact payload, 5084 WANT retries, mutual close_notify passed
+2/4 Test #13: tls_partial_io ...................   Passed    0.91 sec
+test 15
+    Start 15: tls_sustained_concurrency
+
+15: Test command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/tls_soak_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tsan/unfaltering"
+15: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tsan
+15: Test timeout computed to be: 180
+15: {"tls_seconds": 30.047618936999697, "clients": 8, "transactions": 4656, "injected_disconnects": 419}
+15: TLS native resource high-water: {'rss_kib': 32184, 'peak_network_endpoints': 16, 'event': 'stopped', 'requests': 4656, 'peak_proxy_queue_bytes': 131072} RSS test ceiling KiB: 786432
+15: TLS diagnostics: [{"event": "tls_error", "upstream": false, "code": 167772454, "verify": 0}]
+3/4 Test #15: tls_sustained_concurrency ........   Passed   31.59 sec
+test 17
+    Start 17: sustained_concurrency
+
+17: Test command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/soak_test.py" "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tsan/unfaltering"
+17: Working Directory: /workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/build-tsan
+17: Test timeout computed to be: 120
+17: {"seconds": 10.01182999699995, "clients": 8, "transactions": 5844, "injected_disconnects": 646}
+17: Child peak RSS 24236 KiB; peak checked proxy queue bytes 131072
+4/4 Test #17: sustained_concurrency ............   Passed   10.62 sec
+
+The following tests passed:
+	concurrency_unit
+	tls_partial_io
+	tls_sustained_concurrency
+	sustained_concurrency
+
+100% tests passed out of 4
+
+Total Test time (real) =  43.30 sec
+{"tsan": "passed", "seconds": 43.59689119500035}
