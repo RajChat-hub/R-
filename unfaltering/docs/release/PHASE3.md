@@ -7,7 +7,8 @@ Branch: `feat/unfaltering-phase3-tls-20261029`
 Stacked draft: https://github.com/RajChat-hub/R-/pull/3
 Base: `6d64fcc4f1d63dc9763ea3b5bb702fa69fd39407` (Phase 2)
 Reliability gate: `b7549f68e109873637c0ef831da0f348cbcc4e32`
-Validated final code: `443ec49d4c903898471584ed537112585c2833cf`
+Validated runtime/harness code: `443ec49d4c903898471584ed537112585c2833cf`
+Final validated code and corrected corpus: `433d585be1745327b36c8731772f49c722b0bc56`
 
 AGENTS.md, the complete MASTER_DIRECTIVE.md, PHASE2.md, STATUS.md, THREAT_MODEL.md, architecture and existing tests were read before source changes. A stale unfinished local Phase 2 checkout was preserved; work started from a separate checkout of the verified remote Phase 2 SHA. Unrelated repository entries/history were preserved. PR #3 targets Phase 2, not main; PR #1/#2/#3 remain unmerged. No credentials/private keys are in Git.
 
@@ -137,3 +138,7 @@ UNFALTERING_INSTRUMENTED=ON TSAN_OPTIONS=halt_on_error=1 python3 unfaltering/tes
 No public production readiness, independent protocol/cryptographic security review, FIPS certification, multi-day soak qualification, exhaustive RFC conformance or finalized binary redistribution/legal approval is claimed. Single listener/certificate per process; no multi-certificate SNI, mTLS, ACME, renewal/reload, DNS, tunnels, HTTP/2/3, load balancing, cache, FastCGI, multi-reactor distribution or non-Linux support.
 
 Pending SSL writes serialize TLS IO and an uncooperative bidirectional peer can reach configured deadlines; arbitrary application tunnelling is not supported. Completed upstream shutdown is best-effort/no pooling. Filesystem syscalls can still delay worker joining indefinitely; external process supervision is required. Memory admission is not a hard RSS/cgroup cap; OS and trust-store overhead remain separate. App effects before late body errors/disconnect cannot be undone. Independent review, operational validation, dependency/key-maintenance procedures, licensing approval and explicit release gates remain mandatory.
+
+## Final corpus byte-preservation check
+
+Final tree comparison found four newly added response seeds had CRLF normalized during transfer. Commit `433d585be1745327b36c8731772f49c722b0bc56` restores their exact wire bytes; compiled runtime and harness source are unchanged. Both push https://github.com/RajChat-hub/R-/actions/runs/40926937688 and PR https://github.com/RajChat-hub/R-/actions/runs/40926950979 passed, including all compiler suites, focused ThreadSanitizer checks and repeated sanitizer fuzz campaigns. The corrected-corpus campaigns completed **875,857 request + 984,976 config + 645,958 response executions = 2,506,791 total**, with 91 seconds each / 273 seconds reported total. The earlier campaign table remains as historical evidence. The final commit after this checkpoint only saves this report and structured evidence; it does not change runtime, harnesses or corpus. The local working tree was compared to the remote tree, and unrelated repository entries were unchanged.

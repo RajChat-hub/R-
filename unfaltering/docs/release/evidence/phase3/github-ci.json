@@ -168,5 +168,24 @@
     "OpenSSL/system shared libraries are not fully sanitizer-instrumented.",
     "Fuzz campaigns and two-minute development soak are bounded, not exhaustive or production qualification.",
     "First-party licensing and independent security/operational review remain pending."
-  ]
+  ],
+  "corrected_corpus_validation": {
+    "commit": "433d585be1745327b36c8731772f49c722b0bc56",
+    "push_run": "https://github.com/RajChat-hub/R-/actions/runs/40926937688",
+    "pr_run": "https://github.com/RajChat-hub/R-/actions/runs/40926950979",
+    "conclusion": "success",
+    "change": "Restore exact CRLF bytes in four additional response seeds; compiled runtime and harness source unchanged.",
+    "all_compiler_ctest_groups": 17,
+    "thread_sanitizer": "passed",
+    "fuzz_observed_output": [
+      "2026-10-29T18:02:24.7401213Z ##[group]Run ./unfaltering/build/uf_fuzz_http unfaltering/tests/fuzz/seeds/http -max_total_time=90 -max_len=65536 -timeout=3 -rss_limit_mb=768",
+      "2026-10-29T18:03:55.7667826Z Done 875857 runs in 91 second(s)",
+      "2026-10-29T18:03:55.9075860Z ##[group]Run ./unfaltering/build/uf_fuzz_config unfaltering/tests/fuzz/seeds/config -max_total_time=90 -max_len=65536 -timeout=3 -rss_limit_mb=768",
+      "2026-10-29T18:05:26.9352872Z Done 984976 runs in 91 second(s)",
+      "2026-10-29T18:05:27.0789238Z ##[group]Run ./unfaltering/build/uf_fuzz_response unfaltering/tests/fuzz/seeds/response -max_total_time=90 -max_len=65536 -timeout=3 -rss_limit_mb=768",
+      "2026-10-29T18:06:58.1051752Z Done 645958 runs in 91 second(s)"
+    ],
+    "fuzz_total_executions": 2506791,
+    "reported_fuzz_seconds": 273
+  }
 }
