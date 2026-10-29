@@ -16,12 +16,17 @@ void IoPool::start() {
   for (unsigned i = 0; i < 2; ++i)
     workers_.emplace_back([this] { work(); });
 }
-IoPool::~IoPool() {
+void IoPool::shutdown() {
   {
     std::lock_guard lock(mutex_);
     stop_ = true;
+    outstanding_ -= jobs_.size();
+    jobs_.clear();
   }
   cv_.notify_all();
+}
+IoPool::~IoPool() {
+  shutdown();
   for (auto &w : workers_)
     if (w.joinable())
       w.join();
@@ -51,7 +56,7 @@ void IoPool::work() {
     {
       std::unique_lock lock(mutex_);
       cv_.wait(lock, [this] { return stop_ || !jobs_.empty(); });
-      if (jobs_.empty())
+      if (stop_ || jobs_.empty())
         return;
       job = std::move(jobs_.front());
       jobs_.pop_front();
@@ -109,6 +114,10 @@ void EventLog::emit(std::string record) {
   }
   queue_.push_back(std::move(record));
   cv_.notify_one();
+}
+std::size_t EventLog::dropped() {
+  std::lock_guard lock(mutex_);
+  return dropped_;
 }
 void EventLog::finish(std::string record) {
   std::lock_guard lock(mutex_);

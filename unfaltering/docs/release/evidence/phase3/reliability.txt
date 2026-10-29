@@ -1,0 +1,8 @@
+Phase A, before TLS implementation, 29 October 2026.
+GCC13 Debug manual native build: strict warnings passed.
+22 static network tests: PASS. Three hardening integration tests: PASS.
+30 proxy tests: PASS (standalone invocation, child peak 40,928 KiB).
+Initial combined shell compile/test invocation contaminated inherited child RSS with compiler peak; all 30 methods passed but RSS assertion failed. Standalone repeat passed; no ceiling was weakened.
+GCC -fsanitize=thread concurrency target: PASS, 4,000 concurrent worker completions and 40,000 counted no-sink log drops. This is a focused component race check, not a whole-program race proof.
+10.0098-second, eight-client plaintext soak: 6,454 transactions, 712 injected client disconnects, PASS. Checked queue peak 98,372 bytes, child peak 40,928 KiB. Short development drill, not capacity certification.
+Filesystem shutdown cancels queued, not-yet-started jobs and rejects further submissions. Active kernel calls are joined; indefinitely blocked storage still needs external process-level termination.
