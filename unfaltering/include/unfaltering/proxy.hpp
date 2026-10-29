@@ -15,7 +15,7 @@ struct ProxyTransaction {
   std::size_t sent=0;
   std::uint64_t event=0;
   bool connecting=true,registered=false,request_end=false,request_sent=false;
-  bool headers=false,finished=false,terminator=false,early=false,eof=false;
+  bool headers=false,finished=false,terminator=false,early=false,eof=false,transport_error=false;
   unsigned informational=0;
   std::chrono::steady_clock::time_point connect_deadline,response_deadline,send_deadline;
   ProxyTransaction(const Config& c,const Upstream& u,bool head)

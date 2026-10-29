@@ -32,11 +32,14 @@ void Reactor::release_upstream(Connection& c) {
   if(p.registered&&p.socket) epoll_ctl(epoll.get(),EPOLL_CTL_DEL,p.socket.get(),nullptr);
   p.registered=false;
   upstream_events.erase(p.event);
-  if(p.tls&&p.tls->ready()) (void)p.tls->shutdown(); // Best-effort close_notify; never pool this socket.
+  if(p.tls&&p.tls->ready()&&!p.transport_error) (void)p.tls->shutdown(); // Best-effort close_notify; never pool this socket.
   p.tls.reset();
   p.socket.reset();
 }
 void Reactor::proxy_failure(Connection& c,int status) {
+  if(c.proxy)log.emit("{\"event\":\"proxy_failure\",\"status\":"+std::to_string(status)+
+    ",\"decoded\":"+std::to_string(c.proxy->response.decoded_bytes())+
+    ",\"queued\":"+std::to_string(c.proxy->incoming.size())+"}\n");
   release_upstream(c);
   c.proxy.reset();
   c.close=true;
@@ -124,7 +127,10 @@ void Reactor::response_pump(Connection& c) {
   if(!c.proxy||c.dead) return;
   auto& p=*c.proxy;
   for(;;) {
-    if(p.eof&&p.incoming.empty()&&!p.response.done()) p.response.eof();
+    if(p.eof&&p.incoming.empty()&&!p.response.done()) {
+      if(p.transport_error) {proxy_failure(c,502);return;}
+      p.response.eof();
+    }
     if(p.response.failed()) {proxy_failure(c,502);return;}
     if(!p.headers) {
       if(!p.response.ready()) {
@@ -201,7 +207,14 @@ void Reactor::upstream_read(Connection& c) {
     else if(n==0) {p.eof=true;release_upstream(c);response_pump(c);return;}
     else if(errno==EINTR) continue;
     else if(errno==EAGAIN||errno==EWOULDBLOCK) return;
-    else {proxy_failure(c,502);return;}
+    else {
+      if(p.tls)tls_diagnostic(*p.tls,true);
+      // A terminal transport error must not discard already authenticated bytes
+      // retained behind downstream backpressure. Drain them through the framing
+      // parser first. A fixed/chunked exact boundary can complete; an incomplete
+      // or close-delimited message cannot turn this error into successful EOF.
+      p.transport_error=true;p.eof=true;release_upstream(c);response_pump(c);return;
+    }
   }
 }
 void Reactor::upstream_event(Connection& c,std::uint32_t events) {

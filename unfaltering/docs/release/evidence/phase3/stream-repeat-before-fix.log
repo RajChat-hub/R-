@@ -1,0 +1,17 @@
+stream iteration 0
+stream iteration 1
+stream iteration 2
+TLS native resource high-water: {'rss_kib': 23552, 'peak_network_endpoints': 2, 'event': 'stopped', 'requests': 4, 'peak_proxy_queue_bytes': 131072} RSS test ceiling KiB: 196608
+TLS diagnostics: [{"event": "tls_error", "upstream": false, "code": 167772454, "verify": 0}, {"event": "tls_error", "upstream": true, "code": 167772454, "verify": 0}]
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/tls_test.py", line 160, in test_streaming_backpressure_and_memory
+    status,h,result=p.Reader(s).response(digest=True)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/proxy_test.py", line 60, in response
+    size=min(n,32768);add(self.exact(size));n-=size
+                          ^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/proxy_test.py", line 26, in exact
+    if not part: raise EOFError('incomplete framed response')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+EOFError: incomplete framed response

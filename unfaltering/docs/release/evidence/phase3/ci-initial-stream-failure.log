@@ -1,0 +1,455 @@
+﻿2026-10-29T17:38:38.2616137Z Current runner version: '2.338.0'
+2026-10-29T17:38:38.2638646Z ##[group]Runner Image Provisioner
+2026-10-29T17:38:38.2639723Z Hosted Compute Agent
+2026-10-29T17:38:38.2640283Z Version: 20261021.618
+2026-10-29T17:38:38.2640938Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-10-29T17:38:38.2641629Z Build Date: 2026-10-21T00:45:21Z
+2026-10-29T17:38:38.2642268Z Worker ID: {6bb7e20d-f6da-4f60-9bed-1a58582f2b00}
+2026-10-29T17:38:38.2642988Z Region: westus3
+2026-10-29T17:38:38.2643473Z Cloud: Azure
+2026-10-29T17:38:38.2643991Z ##[endgroup]
+2026-10-29T17:38:38.2645265Z ##[group]Operating System
+2026-10-29T17:38:38.2645843Z Ubuntu
+2026-10-29T17:38:38.2646354Z 24.04.5
+2026-10-29T17:38:38.2646827Z LTS
+2026-10-29T17:38:38.2647324Z ##[endgroup]
+2026-10-29T17:38:38.2647823Z ##[group]Runner Image
+2026-10-29T17:38:38.2648399Z Image: ubuntu-24.04
+2026-10-29T17:38:38.2648951Z Version: 20261025.353.1
+2026-10-29T17:38:38.2650197Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-29T17:38:38.2651631Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353
+2026-10-29T17:38:38.2652543Z ##[endgroup]
+2026-10-29T17:38:38.2653545Z ##[group]GITHUB_TOKEN Permissions
+2026-10-29T17:38:38.2655783Z Contents: read
+2026-10-29T17:38:38.2656347Z Metadata: read
+2026-10-29T17:38:38.2656856Z ##[endgroup]
+2026-10-29T17:38:38.2659057Z Secret source: Actions
+2026-10-29T17:38:38.2660107Z Cache mode: write
+2026-10-29T17:38:38.2660764Z Prepare workflow directory
+2026-10-29T17:38:38.2948416Z Prepare all required actions
+2026-10-29T17:38:38.3079115Z Complete job name: build (g++, Release, OFF)
+2026-10-29T17:38:38.4156782Z ##[group]Run git init .
+2026-10-29T17:38:38.4157752Z [36;1mgit init .[0m
+2026-10-29T17:38:38.4158777Z [36;1mgit remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"[0m
+2026-10-29T17:38:38.4160918Z [36;1mgit -c protocol.version=2 fetch --no-tags --no-recurse-submodules --depth=1 origin "$SOURCE_REVISION"[0m
+2026-10-29T17:38:38.4162629Z [36;1mgit sparse-checkout set --no-cone /unfaltering/ /.github/[0m
+2026-10-29T17:38:38.4163998Z [36;1mgit -c advice.detachedHead=false checkout --detach FETCH_HEAD[0m
+2026-10-29T17:38:38.4742115Z shell: /usr/bin/bash -e {0}
+2026-10-29T17:38:38.4743349Z env:
+2026-10-29T17:38:38.4744164Z   SOURCE_REVISION: 45d7d8389bba9341aa3bb89138ffd84511fa4a6b
+2026-10-29T17:38:38.4745268Z ##[endgroup]
+2026-10-29T17:38:38.5103644Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-29T17:38:38.5104706Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-29T17:38:38.5105837Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-29T17:38:38.5106593Z hint: call:
+2026-10-29T17:38:38.5107097Z hint:
+2026-10-29T17:38:38.5107780Z hint: 	git config --global init.defaultBranch <name>
+2026-10-29T17:38:38.5108427Z hint:
+2026-10-29T17:38:38.5109060Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-29T17:38:38.5110268Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-29T17:38:38.5111031Z hint:
+2026-10-29T17:38:38.5111517Z hint: 	git branch -m <name>
+2026-10-29T17:38:38.5112058Z hint:
+2026-10-29T17:38:38.5112726Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-29T17:38:38.5113681Z Initialized empty Git repository in /home/runner/work/R-/R-/.git/
+2026-10-29T17:38:38.9983534Z From https://github.com/RajChat-hub/R-
+2026-10-29T17:38:38.9984603Z  * branch            45d7d8389bba9341aa3bb89138ffd84511fa4a6b -> FETCH_HEAD
+2026-10-29T17:38:39.0112677Z HEAD is now at 45d7d83 Integrate native asynchronous OpenSSL listener and verified HTTPS upstream transport
+2026-10-29T17:38:39.0244992Z ##[group]Run sudo apt-get update -qq
+2026-10-29T17:38:39.0245744Z [36;1msudo apt-get update -qq[0m
+2026-10-29T17:38:39.0246511Z [36;1msudo apt-get install -y --only-upgrade libssl-dev openssl[0m
+2026-10-29T17:38:39.0247520Z [36;1mopenssl version -a[0m
+2026-10-29T17:38:39.0248152Z [36;1mdpkg-query -W libssl-dev openssl[0m
+2026-10-29T17:38:39.0262097Z shell: /usr/bin/bash -e {0}
+2026-10-29T17:38:39.0262742Z ##[endgroup]
+2026-10-29T17:38:43.8968372Z Reading package lists...
+2026-10-29T17:38:44.0947558Z Building dependency tree...
+2026-10-29T17:38:44.0954230Z Reading state information...
+2026-10-29T17:38:44.2778892Z libssl-dev is already the newest version (3.0.13-0ubuntu3.16).
+2026-10-29T17:38:44.2780071Z openssl is already the newest version (3.0.13-0ubuntu3.16).
+2026-10-29T17:38:44.2816975Z 0 upgraded, 0 newly installed, 0 to remove and 5 not upgraded.
+2026-10-29T17:38:44.2817705Z OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
+2026-10-29T17:38:44.2819285Z built on: Wed Sep 16 18:47:02 2026 UTC
+2026-10-29T17:38:44.2822604Z platform: debian-amd64
+2026-10-29T17:38:44.2823275Z options:  bn(64,64)
+2026-10-29T17:38:44.2826315Z compiler: gcc -fPIC -pthread -m64 -Wa,--noexecstack -Wall -fzero-call-used-regs=used-gpr -DOPENSSL_TLS_SECURITY_LEVEL=2 -Wa,--noexecstack -g -O2 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffile-prefix-map=/build/openssl-yMWwKu/openssl-3.0.13=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -fdebug-prefix-map=/build/openssl-yMWwKu/openssl-3.0.13=/usr/src/openssl-3.0.13-0ubuntu3.16 -DOPENSSL_USE_NODELETE -DL_ENDIAN -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DNDEBUG -Wdate-time -D_FORTIFY_SOURCE=3
+2026-10-29T17:38:44.2829120Z OPENSSLDIR: "/usr/lib/ssl"
+2026-10-29T17:38:44.2829890Z ENGINESDIR: "/usr/lib/x86_64-linux-gnu/engines-3"
+2026-10-29T17:38:44.2830737Z MODULESDIR: "/usr/lib/x86_64-linux-gnu/ossl-modules"
+2026-10-29T17:38:44.2831431Z Seeding source: os-specific
+2026-10-29T17:38:44.2832150Z CPUINFO: OPENSSL_ia32cap=0xfffa32235f8bffff:0x1a415fe6f1bf2fbb
+2026-10-29T17:38:44.2930460Z libssl-dev:amd64	3.0.13-0ubuntu3.16
+2026-10-29T17:38:44.2931126Z openssl	3.0.13-0ubuntu3.16
+2026-10-29T17:38:44.3022611Z ##[group]Run cmake -S unfaltering -B unfaltering/build -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DUNFALTERING_SANITIZERS=OFF
+2026-10-29T17:38:44.3023637Z [36;1mcmake -S unfaltering -B unfaltering/build -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DUNFALTERING_SANITIZERS=OFF[0m
+2026-10-29T17:38:44.3038498Z shell: /usr/bin/bash -e {0}
+2026-10-29T17:38:44.3038951Z ##[endgroup]
+2026-10-29T17:38:45.3203147Z -- The CXX compiler identification is GNU 13.3.0
+2026-10-29T17:38:45.3495662Z -- Detecting CXX compiler ABI info
+2026-10-29T17:38:45.4635643Z -- Detecting CXX compiler ABI info - done
+2026-10-29T17:38:45.4849008Z -- Check for working CXX compiler: /usr/bin/g++ - skipped
+2026-10-29T17:38:45.4854566Z -- Detecting CXX compile features
+2026-10-29T17:38:45.4863516Z -- Detecting CXX compile features - done
+2026-10-29T17:38:45.5381022Z -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+2026-10-29T17:38:45.7394658Z -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+2026-10-29T17:38:45.7490038Z -- Found Threads: TRUE
+2026-10-29T17:38:45.8025535Z -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found suitable version "3.0.13", minimum required is "3.0") found components: SSL Crypto
+2026-10-29T17:38:45.8026736Z -- TLS dependency: OpenSSL 3.0.13
+2026-10-29T17:38:46.0359033Z -- Found Python3: /usr/bin/python3.12 (found version "3.12.3") found components: Interpreter
+2026-10-29T17:38:46.0372356Z -- Configuring done (1.7s)
+2026-10-29T17:38:46.0628137Z -- Generating done (0.0s)
+2026-10-29T17:38:46.0629906Z -- Build files have been written to: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:38:46.0698214Z ##[group]Run cmake --build unfaltering/build -j2
+2026-10-29T17:38:46.0698651Z [36;1mcmake --build unfaltering/build -j2[0m
+2026-10-29T17:38:46.0712310Z shell: /usr/bin/bash -e {0}
+2026-10-29T17:38:46.0712718Z ##[endgroup]
+2026-10-29T17:38:46.0892065Z [  4%] Building CXX object CMakeFiles/uf_core.dir/src/http/http.cpp.o
+2026-10-29T17:38:46.0895215Z [  8%] Building CXX object CMakeFiles/uf_core.dir/src/http/stream.cpp.o
+2026-10-29T17:38:47.4681291Z [ 12%] Building CXX object CMakeFiles/uf_core.dir/src/config/config.cpp.o
+2026-10-29T17:38:47.4801227Z [ 16%] Building CXX object CMakeFiles/uf_core.dir/src/static/static.cpp.o
+2026-10-29T17:38:48.3477590Z [ 20%] Building CXX object CMakeFiles/uf_core.dir/src/routing/routing.cpp.o
+2026-10-29T17:38:48.7943843Z [ 24%] Building CXX object CMakeFiles/uf_core.dir/src/net/server.cpp.o
+2026-10-29T17:38:49.4022050Z [ 28%] Building CXX object CMakeFiles/uf_core.dir/src/core/io_pool.cpp.o
+2026-10-29T17:38:50.4412264Z [ 32%] Building CXX object CMakeFiles/uf_core.dir/src/proxy/headers.cpp.o
+2026-10-29T17:38:51.9670363Z [ 36%] Building CXX object CMakeFiles/uf_core.dir/src/proxy/native.cpp.o
+2026-10-29T17:38:52.1837943Z [ 40%] Building CXX object CMakeFiles/uf_core.dir/src/tls/tls.cpp.o
+2026-10-29T17:38:53.6743399Z [ 44%] Linking CXX static library libuf_core.a
+2026-10-29T17:38:54.3290608Z [ 44%] Built target uf_core
+2026-10-29T17:38:54.3358166Z [ 48%] Building CXX object CMakeFiles/unfaltering.dir/src/cli/main.cpp.o
+2026-10-29T17:38:54.3368265Z [ 52%] Building CXX object CMakeFiles/uf_concurrency.dir/tests/unit/concurrency_tests.cpp.o
+2026-10-29T17:38:55.0093884Z [ 56%] Linking CXX executable unfaltering
+2026-10-29T17:38:55.0920527Z [ 56%] Built target unfaltering
+2026-10-29T17:38:55.0983666Z [ 60%] Building CXX object CMakeFiles/uf_unit.dir/tests/unit/tests.cpp.o
+2026-10-29T17:38:55.4237036Z [ 64%] Linking CXX executable uf_concurrency
+2026-10-29T17:38:55.4798873Z [ 64%] Built target uf_concurrency
+2026-10-29T17:38:55.4892316Z [ 68%] Building CXX object CMakeFiles/uf_stream_unit.dir/tests/unit/stream_tests.cpp.o
+2026-10-29T17:38:56.1990708Z [ 72%] Linking CXX executable uf_stream_unit
+2026-10-29T17:38:56.2553394Z [ 72%] Built target uf_stream_unit
+2026-10-29T17:38:56.2615962Z [ 76%] Building CXX object CMakeFiles/uf_proxy_unit.dir/tests/unit/proxy_parser_tests.cpp.o
+2026-10-29T17:38:56.2798440Z [ 80%] Linking CXX executable uf_unit
+2026-10-29T17:38:56.3389708Z [ 80%] Built target uf_unit
+2026-10-29T17:38:56.3457910Z [ 84%] Building CXX object CMakeFiles/uf_parser_stress.dir/tests/unit/parser_stress.cpp.o
+2026-10-29T17:38:57.1694567Z [ 88%] Linking CXX executable uf_parser_stress
+2026-10-29T17:38:57.2266605Z [ 88%] Built target uf_parser_stress
+2026-10-29T17:38:57.2330181Z [ 92%] Building CXX object CMakeFiles/uf_tls_io.dir/tests/unit/tls_io_tests.cpp.o
+2026-10-29T17:38:57.4325055Z [ 96%] Linking CXX executable uf_proxy_unit
+2026-10-29T17:38:57.4889048Z [ 96%] Built target uf_proxy_unit
+2026-10-29T17:38:58.0332830Z [100%] Linking CXX executable uf_tls_io
+2026-10-29T17:38:58.1146053Z [100%] Built target uf_tls_io
+2026-10-29T17:38:58.1317628Z ##[group]Run ctest --test-dir unfaltering/build --output-on-failure --verbose
+2026-10-29T17:38:58.1318275Z [36;1mctest --test-dir unfaltering/build --output-on-failure --verbose[0m
+2026-10-29T17:38:58.1332213Z shell: /usr/bin/bash -e {0}
+2026-10-29T17:38:58.1332574Z env:
+2026-10-29T17:38:58.1332905Z   ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+2026-10-29T17:38:58.1333359Z   UBSAN_OPTIONS: halt_on_error=1
+2026-10-29T17:38:58.1333713Z   UNFALTERING_INSTRUMENTED: OFF
+2026-10-29T17:38:58.1334069Z ##[endgroup]
+2026-10-29T17:38:58.5204151Z Internal ctest changing into directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:38:58.5205066Z UpdateCTestConfiguration  from :/home/runner/work/R-/R-/unfaltering/build/DartConfiguration.tcl
+2026-10-29T17:38:58.5205703Z Parse Config file:/home/runner/work/R-/R-/unfaltering/build/DartConfiguration.tcl
+2026-10-29T17:38:58.5819463Z UpdateCTestConfiguration  from :/home/runner/work/R-/R-/unfaltering/build/DartConfiguration.tcl
+2026-10-29T17:38:58.5821400Z Parse Config file:/home/runner/work/R-/R-/unfaltering/build/DartConfiguration.tcl
+2026-10-29T17:38:58.5856128Z Test project /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:38:58.5861107Z Constructing a list of tests
+2026-10-29T17:38:58.6025594Z Done constructing a list of tests
+2026-10-29T17:38:58.6026092Z Updating test list for fixtures
+2026-10-29T17:38:58.6026465Z Added 0 tests to meet fixture requirements
+2026-10-29T17:38:58.6174466Z Checking test dependency graph...
+2026-10-29T17:38:58.6175058Z Checking test dependency graph end
+2026-10-29T17:38:58.6315476Z test 1
+2026-10-29T17:38:58.6316186Z       Start  1: concurrency_unit
+2026-10-29T17:38:58.6316491Z 
+2026-10-29T17:38:58.6316851Z 1: Test command: /home/runner/work/R-/R-/unfaltering/build/uf_concurrency
+2026-10-29T17:38:58.6317543Z 1: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:38:58.6364678Z 1: Test timeout computed to be: 1500
+2026-10-29T17:38:58.6490954Z 1: 4000 concurrent worker completions; 40000 counted log drops; queued cancellation passed
+2026-10-29T17:38:58.6491815Z  1/16 Test  #1: concurrency_unit .................   Passed    0.01 sec
+2026-10-29T17:38:58.6556364Z test 2
+2026-10-29T17:38:58.6556793Z       Start  2: unit
+2026-10-29T17:38:58.6557095Z 
+2026-10-29T17:38:58.6557367Z 2: Test command: /home/runner/work/R-/R-/unfaltering/build/uf_unit
+2026-10-29T17:38:58.6558005Z 2: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:38:58.6558466Z 2: Test timeout computed to be: 1500
+2026-10-29T17:38:58.6603776Z 2: 161 unit assertions passed
+2026-10-29T17:38:58.6604563Z  2/16 Test  #2: unit .............................   Passed    0.00 sec
+2026-10-29T17:38:58.6606274Z test 3
+2026-10-29T17:38:58.6606785Z       Start  3: streaming_unit
+2026-10-29T17:38:58.6607008Z 
+2026-10-29T17:38:58.6607262Z 3: Test command: /home/runner/work/R-/R-/unfaltering/build/uf_stream_unit
+2026-10-29T17:38:58.6607884Z 3: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:38:58.6608345Z 3: Test timeout computed to be: 1500
+2026-10-29T17:38:58.6626248Z 3: streaming fragmentation, work-count, backpressure and worker budget checks passed
+2026-10-29T17:38:58.6628082Z  3/16 Test  #3: streaming_unit ...................   Passed    0.00 sec
+2026-10-29T17:38:58.6630010Z test 4
+2026-10-29T17:38:58.6630453Z       Start  4: proxy_parser_unit
+2026-10-29T17:38:58.6630760Z 
+2026-10-29T17:38:58.6631117Z 4: Test command: /home/runner/work/R-/R-/unfaltering/build/uf_proxy_unit
+2026-10-29T17:38:58.6631962Z 4: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:38:58.6632411Z 4: Test timeout computed to be: 1500
+2026-10-29T17:38:58.6643274Z 4: Response fragmentation, framing and forwarding-policy checks passed
+2026-10-29T17:38:58.6644230Z  4/16 Test  #4: proxy_parser_unit ................   Passed    0.00 sec
+2026-10-29T17:38:58.6645958Z test 5
+2026-10-29T17:38:58.6646376Z       Start  5: parser_stress
+2026-10-29T17:38:58.6646740Z 
+2026-10-29T17:38:58.6647223Z 5: Test command: /home/runner/work/R-/R-/unfaltering/build/uf_parser_stress
+2026-10-29T17:38:58.6647770Z 5: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:38:58.6648228Z 5: Test timeout computed to be: 1500
+2026-10-29T17:38:58.7535431Z 5: 20000 seeded mutations passed HTTP/config invariant checks; not coverage-guided fuzz certification
+2026-10-29T17:38:58.7540590Z  5/16 Test  #5: parser_stress ....................   Passed    0.09 sec
+2026-10-29T17:38:58.7541494Z test 6
+2026-10-29T17:38:58.7541875Z       Start  6: cli_version
+2026-10-29T17:38:58.7542105Z 
+2026-10-29T17:38:58.7542483Z 6: Test command: /home/runner/work/R-/R-/unfaltering/build/unfaltering "--version"
+2026-10-29T17:38:58.7543235Z 6: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:38:58.7543847Z 6: Test timeout computed to be: 1500
+2026-10-29T17:38:58.7567949Z 6: UNFALTERING 0.3.0-dev | SalesAutoMate | Linux epoll / HTTP/1.1 development milestone
+2026-10-29T17:38:58.7569934Z  6/16 Test  #6: cli_version ......................   Passed    0.00 sec
+2026-10-29T17:38:58.7571512Z test 7
+2026-10-29T17:38:58.7571986Z       Start  7: cli_help
+2026-10-29T17:38:58.7572346Z 
+2026-10-29T17:38:58.7572801Z 7: Test command: /home/runner/work/R-/R-/unfaltering/build/unfaltering "--help"
+2026-10-29T17:38:58.7573640Z 7: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:38:58.7574254Z 7: Test timeout computed to be: 1500
+2026-10-29T17:38:58.7596258Z 7: UNFALTERING Web Server
+2026-10-29T17:38:58.7596863Z 7: Built to Endure. Engineered to Serve.
+2026-10-29T17:38:58.7597302Z 7: Usage:
+2026-10-29T17:38:58.7597643Z 7:   unfaltering --version
+2026-10-29T17:38:58.7598110Z 7:   unfaltering --help
+2026-10-29T17:38:58.7598540Z 7:   unfaltering --check --config FILE
+2026-10-29T17:38:58.7599115Z 7:   unfaltering serve --config FILE
+2026-10-29T17:38:58.7601448Z  7/16 Test  #7: cli_help .........................   Passed    0.00 sec
+2026-10-29T17:38:58.7602325Z test 8
+2026-10-29T17:38:58.7602854Z       Start  8: example_config
+2026-10-29T17:38:58.7603272Z 
+2026-10-29T17:38:58.7604279Z 8: Test command: /home/runner/work/R-/R-/unfaltering/build/unfaltering "--check" "--config" "/home/runner/work/R-/R-/unfaltering/examples/server.ufc"
+2026-10-29T17:38:58.7605475Z 8: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:38:58.7606115Z 8: Test timeout computed to be: 1500
+2026-10-29T17:38:58.7622521Z 8: Configuration valid; root directories opened successfully
+2026-10-29T17:38:58.7623555Z  8/16 Test  #8: example_config ...................   Passed    0.00 sec
+2026-10-29T17:38:58.7625392Z test 9
+2026-10-29T17:38:58.7625890Z       Start  9: network_integration
+2026-10-29T17:38:58.7626163Z 
+2026-10-29T17:38:58.7626987Z 9: Test command: /usr/bin/python3.12 "/home/runner/work/R-/R-/unfaltering/tests/integration/http_test.py" "/home/runner/work/R-/R-/unfaltering/build/unfaltering"
+2026-10-29T17:38:58.7628122Z 9: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:38:58.7628608Z 9: Test timeout computed to be: 60
+2026-10-29T17:39:00.6922141Z 9: test_blocked_writer_deadline (__main__.ServerTests.test_blocked_writer_deadline) ... ok
+2026-10-29T17:39:01.1927609Z 9: test_body_deadline (__main__.ServerTests.test_body_deadline) ... ok
+2026-10-29T17:39:01.2190958Z 9: test_concurrent_reset_and_reuse (__main__.ServerTests.test_concurrent_reset_and_reuse) ... ok
+2026-10-29T17:39:01.2213748Z 9: test_config_rejection (__main__.ServerTests.test_config_rejection) ... ok
+2026-10-29T17:39:01.3236602Z 9: test_connection_limit (__main__.ServerTests.test_connection_limit) ... ok
+2026-10-29T17:39:02.2403016Z 9: test_descriptor_exhaustion_recovery (__main__.ServerTests.test_descriptor_exhaustion_recovery) ... ok
+2026-10-29T17:39:02.2406948Z 9: test_fragmented (__main__.ServerTests.test_fragmented) ... ok
+2026-10-29T17:39:02.2411535Z 9: test_get_head (__main__.ServerTests.test_get_head) ... ok
+2026-10-29T17:39:02.8171222Z 9: test_graceful_shutdown_with_blocked_client (__main__.ServerTests.test_graceful_shutdown_with_blocked_client) ... ok
+2026-10-29T17:39:02.8176511Z 9: test_half_close (__main__.ServerTests.test_half_close) ... ok
+2026-10-29T17:39:02.9761318Z 9: test_half_close_with_backpressure (__main__.ServerTests.test_half_close_with_backpressure) ... ok
+2026-10-29T17:39:02.9765382Z 9: test_head_error_has_no_body (__main__.ServerTests.test_head_error_has_no_body) ... ok
+2026-10-29T17:39:03.7771302Z 9: test_idle_timeout (__main__.ServerTests.test_idle_timeout) ... ok
+2026-10-29T17:39:03.8185564Z 9: test_keep_alive_body_boundaries (__main__.ServerTests.test_keep_alive_body_boundaries) ... ok
+2026-10-29T17:39:03.8871878Z 9: test_large_partial_writes (__main__.ServerTests.test_large_partial_writes) ... ok
+2026-10-29T17:39:03.8882159Z 9: test_limits (__main__.ServerTests.test_limits) ... ok
+2026-10-29T17:39:03.8888461Z 9: test_malformed (__main__.ServerTests.test_malformed) ... ok
+2026-10-29T17:39:03.8900934Z 9: test_paths (__main__.ServerTests.test_paths) ... ok
+2026-10-29T17:39:03.8910846Z 9: test_pipeline_and_limit (__main__.ServerTests.test_pipeline_and_limit) ... ok
+2026-10-29T17:39:04.3915773Z 9: test_request_deadline (__main__.ServerTests.test_request_deadline) ... ok
+2026-10-29T17:39:04.3922025Z 9: test_static_routes (__main__.ServerTests.test_static_routes) ... ok
+2026-10-29T17:39:04.3924864Z 9: test_virtual_host (__main__.ServerTests.test_virtual_host) ... ok
+2026-10-29T17:39:04.3944511Z 9: 
+2026-10-29T17:39:04.3945263Z 9: ----------------------------------------------------------------------
+2026-10-29T17:39:04.3945715Z 9: Ran 22 tests in 5.542s
+2026-10-29T17:39:04.3946035Z 9: 
+2026-10-29T17:39:04.3946323Z 9: OK
+2026-10-29T17:39:04.4059929Z  9/16 Test  #9: network_integration ..............   Passed    5.64 sec
+2026-10-29T17:39:04.4399880Z test 10
+2026-10-29T17:39:04.4400250Z       Start 10: hardening_integration
+2026-10-29T17:39:04.4400690Z 
+2026-10-29T17:39:04.4401534Z 10: Test command: /usr/bin/python3.12 "/home/runner/work/R-/R-/unfaltering/tests/integration/hardening_test.py" "/home/runner/work/R-/R-/unfaltering/build/unfaltering"
+2026-10-29T17:39:04.4402380Z 10: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:39:04.4402836Z 10: Test timeout computed to be: 60
+2026-10-29T17:39:04.7725164Z 10: test_blocked_log_pipe_does_not_stall_network_or_shutdown (__main__.Hardening.test_blocked_log_pipe_does_not_stall_network_or_shutdown) ... ok
+2026-10-29T17:39:04.8952984Z 10: test_memory_reservation_caps_connection_admission (__main__.Hardening.test_memory_reservation_caps_connection_admission) ... ok
+2026-10-29T17:39:04.9015693Z 10: test_tiny_chunk_fragmentation (__main__.Hardening.test_tiny_chunk_fragmentation) ... ok
+2026-10-29T17:39:04.9034810Z 10: 
+2026-10-29T17:39:04.9035400Z 10: ----------------------------------------------------------------------
+2026-10-29T17:39:04.9035877Z 10: Ran 3 tests in 0.414s
+2026-10-29T17:39:04.9036179Z 10: 
+2026-10-29T17:39:04.9036422Z 10: OK
+2026-10-29T17:39:04.9134629Z 10/16 Test #10: hardening_integration ............   Passed    0.47 sec
+2026-10-29T17:39:04.9135303Z test 11
+2026-10-29T17:39:04.9135803Z       Start 11: proxy_integration
+2026-10-29T17:39:04.9136085Z 
+2026-10-29T17:39:04.9136866Z 11: Test command: /usr/bin/python3.12 "/home/runner/work/R-/R-/unfaltering/tests/integration/proxy_test.py" "/home/runner/work/R-/R-/unfaltering/build/unfaltering"
+2026-10-29T17:39:04.9138020Z 11: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:39:04.9138654Z 11: Test timeout computed to be: 120
+2026-10-29T17:39:04.9781920Z 11: test_boundary_overflow_never_reaches_client (__main__.ProxyTests.test_boundary_overflow_never_reaches_client) ... ok
+2026-10-29T17:39:04.9793695Z 11: test_chunked_request_and_response (__main__.ProxyTests.test_chunked_request_and_response) ... ok
+2026-10-29T17:39:05.0895711Z 11: test_client_disconnect_and_recovery (__main__.ProxyTests.test_client_disconnect_and_recovery) ... ok
+2026-10-29T17:39:05.3023564Z 11: test_client_upload_deadline (__main__.ProxyTests.test_client_upload_deadline) ... ok
+2026-10-29T17:39:05.3030009Z 11: test_close_delimited_response (__main__.ProxyTests.test_close_delimited_response) ... ok
+2026-10-29T17:39:05.3132444Z 11: test_configuration_rejects_bad_declarations (__main__.ProxyTests.test_configuration_rejects_bad_declarations) ... ok
+2026-10-29T17:39:05.3134980Z 11: test_connection_token_resource_limit (__main__.ProxyTests.test_connection_token_resource_limit) ... ok
+2026-10-29T17:39:05.3148643Z 11: test_exact_write_budget_finishes_keepalive_transaction (__main__.ProxyTests.test_exact_write_budget_finishes_keepalive_transaction) ... ok
+2026-10-29T17:39:05.3159203Z 11: test_forwarding_and_connection_named_headers (__main__.ProxyTests.test_forwarding_and_connection_named_headers) ... ok
+2026-10-29T17:39:05.3165420Z 11: test_fragmented_request (__main__.ProxyTests.test_fragmented_request) ... ok
+2026-10-29T17:39:05.7192503Z 11: test_gateway_errors_and_timeout (__main__.ProxyTests.test_gateway_errors_and_timeout) ... ok
+2026-10-29T17:39:05.7206834Z 11: test_get_post_and_static (__main__.ProxyTests.test_get_post_and_static) ... ok
+2026-10-29T17:39:05.7213464Z 11: test_half_closed_upload_still_receives_response (__main__.ProxyTests.test_half_closed_upload_still_receives_response) ... ok
+2026-10-29T17:39:05.7228203Z 11: test_head_no_content_and_informational (__main__.ProxyTests.test_head_no_content_and_informational) ... ok
+2026-10-29T17:39:05.7233037Z 11: test_incomplete_client_body_closes_upstream (__main__.ProxyTests.test_incomplete_client_body_closes_upstream) ... ok
+2026-10-29T17:39:05.7245869Z 11: test_invalid_upstream_body_framing (__main__.ProxyTests.test_invalid_upstream_body_framing) ... ok
+2026-10-29T17:39:05.7262248Z 11: test_invalid_upstream_header_framing (__main__.ProxyTests.test_invalid_upstream_header_framing) ... ok
+2026-10-29T17:39:05.8953867Z 11: test_large_stream_and_backpressure (__main__.ProxyTests.test_large_stream_and_backpressure) ... ok
+2026-10-29T17:39:06.1233979Z 11: test_memory_bound_with_128_mib_stream (__main__.ProxyTests.test_memory_bound_with_128_mib_stream) ... ok
+2026-10-29T17:39:06.1237970Z 11: test_no_tunnelling_or_arbitrary_destination (__main__.ProxyTests.test_no_tunnelling_or_arbitrary_destination) ... ok
+2026-10-29T17:39:06.1245560Z 11: test_non_idempotent_failure_is_not_retried (__main__.ProxyTests.test_non_idempotent_failure_is_not_retried) ... ok
+2026-10-29T17:39:06.1258185Z 11: test_persistent_pipeline (__main__.ProxyTests.test_persistent_pipeline) ... ok
+2026-10-29T17:39:08.7534352Z 11: test_request_backpressure_to_slow_upstream (__main__.ProxyTests.test_request_backpressure_to_slow_upstream) ... ok
+2026-10-29T17:39:08.7544777Z 11: test_request_upload_streams_before_completion (__main__.ProxyTests.test_request_upload_streams_before_completion) ... ok
+2026-10-29T17:39:09.3803208Z 11: test_shutdown_with_active_proxy (__main__.ProxyTests.test_shutdown_with_active_proxy) ... ok
+2026-10-29T17:39:10.0345521Z 11: test_slow_upload_and_early_rejection (__main__.ProxyTests.test_slow_upload_and_early_rejection) ... ok
+2026-10-29T17:39:10.0348081Z 11: test_smuggling_is_rejected (__main__.ProxyTests.test_smuggling_is_rejected) ... ok
+2026-10-29T17:39:10.0353932Z 11: test_upstream_header_limit (__main__.ProxyTests.test_upstream_header_limit) ... ok
+2026-10-29T17:39:10.2368270Z 11: test_upstream_request_send_deadline (__main__.ProxyTests.test_upstream_request_send_deadline) ... ok
+2026-10-29T17:39:10.4390813Z 11: test_upstream_timeout_after_commit_truncates (__main__.ProxyTests.test_upstream_timeout_after_commit_truncates) ... ok
+2026-10-29T17:39:10.9403727Z 11: 
+2026-10-29T17:39:10.9404748Z 11: ----------------------------------------------------------------------
+2026-10-29T17:39:10.9405661Z 11: Ran 30 tests in 5.976s
+2026-10-29T17:39:10.9406229Z 11: 
+2026-10-29T17:39:10.9406737Z 11: OK
+2026-10-29T17:39:10.9407393Z 11: Child peak RSS 47152 KiB; peak checked proxy queue bytes 131072
+2026-10-29T17:39:10.9512050Z 11/16 Test #11: proxy_integration ................   Passed    6.04 sec
+2026-10-29T17:39:10.9513098Z test 12
+2026-10-29T17:39:10.9513506Z       Start 12: proxy_demo
+2026-10-29T17:39:10.9514300Z 
+2026-10-29T17:39:10.9514995Z 12: Test command: /usr/bin/python3.12 "/home/runner/work/R-/R-/unfaltering/tests/integration/demo_test.py" "/home/runner/work/R-/R-/unfaltering/build/unfaltering" "/home/runner/work/R-/R-/unfaltering/examples"
+2026-10-29T17:39:10.9515992Z 12: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:39:10.9516600Z 12: Test timeout computed to be: 30
+2026-10-29T17:39:11.0058687Z 12: Configuration valid; root directories opened successfully
+2026-10-29T17:39:11.1112579Z 12: Shipped configuration + static site + native proxied demo GET/POST passed
+2026-10-29T17:39:11.1200596Z 12/16 Test #12: proxy_demo .......................   Passed    0.17 sec
+2026-10-29T17:39:11.1202059Z test 13
+2026-10-29T17:39:11.1202502Z       Start 13: tls_partial_io
+2026-10-29T17:39:11.1202735Z 
+2026-10-29T17:39:11.1203299Z 13: Test command: /usr/bin/python3.12 "/home/runner/work/R-/R-/unfaltering/tests/integration/tls_io_test.py" "/home/runner/work/R-/R-/unfaltering/build/uf_tls_io"
+2026-10-29T17:39:11.1204304Z 13: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:39:11.1204883Z 13: Test timeout computed to be: 30
+2026-10-29T17:39:11.7756939Z 13: TLS socketpair: verified handshake, 4 MiB exact payload, 5084 WANT retries, mutual close_notify passed
+2026-10-29T17:39:11.7936249Z 13/16 Test #13: tls_partial_io ...................   Passed    0.67 sec
+2026-10-29T17:39:11.7937437Z test 14
+2026-10-29T17:39:11.7937745Z       Start 14: tls_sustained_concurrency
+2026-10-29T17:39:11.7937977Z 
+2026-10-29T17:39:11.7938494Z 14: Test command: /usr/bin/python3.12 "/home/runner/work/R-/R-/unfaltering/tests/integration/tls_soak_test.py" "/home/runner/work/R-/R-/unfaltering/build/unfaltering"
+2026-10-29T17:39:11.7939252Z 14: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:39:11.7939974Z 14: Test timeout computed to be: 180
+2026-10-29T17:39:43.4436055Z 14: {"tls_seconds": 30.038351724999984, "clients": 8, "transactions": 5921, "injected_disconnects": 536}
+2026-10-29T17:39:43.4437520Z 14: TLS native resource high-water: {'rss_kib': 32160, 'peak_network_endpoints': 15, 'event': 'stopped', 'requests': 5921, 'peak_proxy_queue_bytes': 131072} RSS test ceiling KiB: 196608
+2026-10-29T17:39:43.4438641Z 14: TLS diagnostics: [{"event": "tls_error", "upstream": false, "code": 167772454, "verify": 0}]
+2026-10-29T17:39:43.4589169Z 14/16 Test #14: tls_sustained_concurrency ........   Passed   31.67 sec
+2026-10-29T17:39:43.4591544Z test 15
+2026-10-29T17:39:43.4592193Z       Start 15: tls_integration
+2026-10-29T17:39:43.4592390Z 
+2026-10-29T17:39:43.4592954Z 15: Test command: /usr/bin/python3.12 "/home/runner/work/R-/R-/unfaltering/tests/integration/tls_test.py" "/home/runner/work/R-/R-/unfaltering/build/unfaltering"
+2026-10-29T17:39:43.4593869Z 15: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:39:43.4594315Z 15: Test timeout computed to be: 180
+2026-10-29T17:39:44.4286525Z 15: test_abrupt_disconnects_and_resets (__main__.TlsTests.test_abrupt_disconnects_and_resets) ... ok
+2026-10-29T17:39:44.5166307Z 15: test_chunked_fragmented_and_pipeline (__main__.TlsTests.test_chunked_fragmented_and_pipeline) ... ok
+2026-10-29T17:39:45.1145552Z 15: test_concurrent_tls_and_admission (__main__.TlsTests.test_concurrent_tls_and_admission) ... ok
+2026-10-29T17:39:45.6819058Z 15: test_descriptor_exhaustion_recovery_under_tls (__main__.TlsTests.test_descriptor_exhaustion_recovery_under_tls) ... ok
+2026-10-29T17:39:47.0667326Z 15: test_incomplete_and_slow_handshake_deadline (__main__.TlsTests.test_incomplete_and_slow_handshake_deadline) ... ok
+2026-10-29T17:39:47.2888620Z 15: test_invalid_framing_still_rejected (__main__.TlsTests.test_invalid_framing_still_rejected) ... ok
+2026-10-29T17:39:47.3540397Z 15: test_large_static_and_clean_close_notify (__main__.TlsTests.test_large_static_and_clean_close_notify) ... ok
+2026-10-29T17:39:47.3753298Z 15: test_listener_certificate_verification (__main__.TlsTests.test_listener_certificate_verification) ... ok
+2026-10-29T17:39:47.5035730Z 15: test_protocol_versions_and_alpn (__main__.TlsTests.test_protocol_versions_and_alpn) ... ok
+2026-10-29T17:39:48.1617432Z 15: test_shutdown_with_active_tls (__main__.TlsTests.test_shutdown_with_active_tls) ... ok
+2026-10-29T17:39:48.1888430Z 15: test_startup_validation (__main__.TlsTests.test_startup_validation) ... ok
+2026-10-29T17:39:48.5472796Z 15: test_streaming_backpressure_and_memory (__main__.TlsTests.test_streaming_backpressure_and_memory) ... ERROR
+2026-10-29T17:39:48.6748499Z 15: test_truncated_tls_eof_is_not_success (__main__.TlsTests.test_truncated_tls_eof_is_not_success) ... ok
+2026-10-29T17:39:48.6759363Z 15: test_unsupported_alpn_rejected (__main__.TlsTests.test_unsupported_alpn_rejected) ... ok
+2026-10-29T17:39:48.9197926Z 15: test_upstream_handshake_timeout (__main__.TlsTests.test_upstream_handshake_timeout) ... ok
+2026-10-29T17:39:49.0538846Z 15: test_upstream_protocols_and_ip_identity (__main__.TlsTests.test_upstream_protocols_and_ip_identity) ... ok
+2026-10-29T17:39:49.9962768Z 15: test_verification_failures_and_cleanup (__main__.TlsTests.test_verification_failures_and_cleanup) ... ok
+2026-10-29T17:39:50.0860512Z 15: test_verified_https_proxy_and_forwarding (__main__.TlsTests.test_verified_https_proxy_and_forwarding) ... ok
+2026-10-29T17:39:50.8227361Z 15: 
+2026-10-29T17:39:50.8228430Z 15: ======================================================================
+2026-10-29T17:39:50.8229899Z 15: ERROR: test_streaming_backpressure_and_memory (__main__.TlsTests.test_streaming_backpressure_and_memory)
+2026-10-29T17:39:50.8231017Z 15: ----------------------------------------------------------------------
+2026-10-29T17:39:50.8231731Z 15: Traceback (most recent call last):
+2026-10-29T17:39:50.8233405Z 15:   File "/home/runner/work/R-/R-/unfaltering/tests/integration/tls_test.py", line 159, in test_streaming_backpressure_and_memory
+2026-10-29T17:39:50.8234639Z 15:     status,h,result=p.Reader(s).response(digest=True)
+2026-10-29T17:39:50.8235368Z 15:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-29T17:39:50.8236298Z 15:   File "/home/runner/work/R-/R-/unfaltering/tests/integration/proxy_test.py", line 60, in response
+2026-10-29T17:39:50.8237407Z 15:     size=min(n,32768);add(self.exact(size));n-=size
+2026-10-29T17:39:50.8238066Z 15:                           ^^^^^^^^^^^^^^^^
+2026-10-29T17:39:50.8238909Z 15:   File "/home/runner/work/R-/R-/unfaltering/tests/integration/proxy_test.py", line 26, in exact
+2026-10-29T17:39:50.8240084Z 15:     if not part: raise EOFError('incomplete framed response')
+2026-10-29T17:39:50.8240788Z 15:                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-29T17:39:50.8241379Z 15: EOFError: incomplete framed response
+2026-10-29T17:39:50.8242004Z 15: 
+2026-10-29T17:39:50.8242565Z 15: ----------------------------------------------------------------------
+2026-10-29T17:39:50.8243245Z 15: Ran 18 tests in 7.305s
+2026-10-29T17:39:50.8243744Z 15: 
+2026-10-29T17:39:50.8244171Z 15: FAILED (errors=1)
+2026-10-29T17:39:50.8245271Z 15: TLS native resource high-water: {'rss_kib': 31084, 'peak_network_endpoints': 32, 'event': 'stopped', 'requests': 148, 'peak_proxy_queue_bytes': 131072} RSS test ceiling KiB: 196608
+2026-10-29T17:39:50.8247728Z 15: TLS diagnostics: [{"event": "tls_error", "upstream": false, "code": 167772454, "verify": 0}, {"event": "tls_error", "upstream": false, "code": 167773208, "verify": 0}, {"event": "tls_error", "upstream": false, "code": 167773202, "verify": 0}, {"event": "tls_error", "upstream": false, "code": 167772395, "verify": 0}, {"event": "tls_error", "upstream": true, "code": 167772294, "verify": 62}, {"event": "tls_error", "upstream": true, "code": 167772294, "verify": 62}]
+2026-10-29T17:39:50.8367103Z 15/16 Test #15: tls_integration ..................***Failed    7.38 sec
+2026-10-29T17:39:50.8367987Z test_abrupt_disconnects_and_resets (__main__.TlsTests.test_abrupt_disconnects_and_resets) ... ok
+2026-10-29T17:39:50.8369104Z test_chunked_fragmented_and_pipeline (__main__.TlsTests.test_chunked_fragmented_and_pipeline) ... ok
+2026-10-29T17:39:50.8370534Z test_concurrent_tls_and_admission (__main__.TlsTests.test_concurrent_tls_and_admission) ... ok
+2026-10-29T17:39:50.8371445Z test_descriptor_exhaustion_recovery_under_tls (__main__.TlsTests.test_descriptor_exhaustion_recovery_under_tls) ... ok
+2026-10-29T17:39:50.8372260Z test_incomplete_and_slow_handshake_deadline (__main__.TlsTests.test_incomplete_and_slow_handshake_deadline) ... ok
+2026-10-29T17:39:50.8373011Z test_invalid_framing_still_rejected (__main__.TlsTests.test_invalid_framing_still_rejected) ... ok
+2026-10-29T17:39:50.8373772Z test_large_static_and_clean_close_notify (__main__.TlsTests.test_large_static_and_clean_close_notify) ... ok
+2026-10-29T17:39:50.8374504Z test_listener_certificate_verification (__main__.TlsTests.test_listener_certificate_verification) ... ok
+2026-10-29T17:39:50.8375172Z test_protocol_versions_and_alpn (__main__.TlsTests.test_protocol_versions_and_alpn) ... ok
+2026-10-29T17:39:50.8375876Z test_shutdown_with_active_tls (__main__.TlsTests.test_shutdown_with_active_tls) ... ok
+2026-10-29T17:39:50.8376492Z test_startup_validation (__main__.TlsTests.test_startup_validation) ... ok
+2026-10-29T17:39:50.8377165Z test_streaming_backpressure_and_memory (__main__.TlsTests.test_streaming_backpressure_and_memory) ... ERROR
+2026-10-29T17:39:50.8377887Z test_truncated_tls_eof_is_not_success (__main__.TlsTests.test_truncated_tls_eof_is_not_success) ... ok
+2026-10-29T17:39:50.8378637Z test_unsupported_alpn_rejected (__main__.TlsTests.test_unsupported_alpn_rejected) ... ok
+2026-10-29T17:39:50.8379304Z test_upstream_handshake_timeout (__main__.TlsTests.test_upstream_handshake_timeout) ... ok
+2026-10-29T17:39:50.8380236Z test_upstream_protocols_and_ip_identity (__main__.TlsTests.test_upstream_protocols_and_ip_identity) ... ok
+2026-10-29T17:39:50.8381035Z test_verification_failures_and_cleanup (__main__.TlsTests.test_verification_failures_and_cleanup) ... ok
+2026-10-29T17:39:50.8381780Z test_verified_https_proxy_and_forwarding (__main__.TlsTests.test_verified_https_proxy_and_forwarding) ... ok
+2026-10-29T17:39:50.8382190Z 
+2026-10-29T17:39:50.8382362Z ======================================================================
+2026-10-29T17:39:50.8382957Z ERROR: test_streaming_backpressure_and_memory (__main__.TlsTests.test_streaming_backpressure_and_memory)
+2026-10-29T17:39:50.8383586Z ----------------------------------------------------------------------
+2026-10-29T17:39:50.8384019Z Traceback (most recent call last):
+2026-10-29T17:39:50.8384695Z   File "/home/runner/work/R-/R-/unfaltering/tests/integration/tls_test.py", line 159, in test_streaming_backpressure_and_memory
+2026-10-29T17:39:50.8385327Z     status,h,result=p.Reader(s).response(digest=True)
+2026-10-29T17:39:50.8385756Z                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-29T17:39:50.8386297Z   File "/home/runner/work/R-/R-/unfaltering/tests/integration/proxy_test.py", line 60, in response
+2026-10-29T17:39:50.8386834Z     size=min(n,32768);add(self.exact(size));n-=size
+2026-10-29T17:39:50.8387236Z                           ^^^^^^^^^^^^^^^^
+2026-10-29T17:39:50.8387721Z   File "/home/runner/work/R-/R-/unfaltering/tests/integration/proxy_test.py", line 26, in exact
+2026-10-29T17:39:50.8388306Z     if not part: raise EOFError('incomplete framed response')
+2026-10-29T17:39:50.8388798Z                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-29T17:39:50.8389170Z EOFError: incomplete framed response
+2026-10-29T17:39:50.8389384Z 
+2026-10-29T17:39:50.8389757Z ----------------------------------------------------------------------
+2026-10-29T17:39:50.8390171Z Ran 18 tests in 7.305s
+2026-10-29T17:39:50.8390371Z 
+2026-10-29T17:39:50.8390499Z FAILED (errors=1)
+2026-10-29T17:39:50.8391198Z TLS native resource high-water: {'rss_kib': 31084, 'peak_network_endpoints': 32, 'event': 'stopped', 'requests': 148, 'peak_proxy_queue_bytes': 131072} RSS test ceiling KiB: 196608
+2026-10-29T17:39:50.8393004Z TLS diagnostics: [{"event": "tls_error", "upstream": false, "code": 167772454, "verify": 0}, {"event": "tls_error", "upstream": false, "code": 167773208, "verify": 0}, {"event": "tls_error", "upstream": false, "code": 167773202, "verify": 0}, {"event": "tls_error", "upstream": false, "code": 167772395, "verify": 0}, {"event": "tls_error", "upstream": true, "code": 167772294, "verify": 62}, {"event": "tls_error", "upstream": true, "code": 167772294, "verify": 62}]
+2026-10-29T17:39:50.8394574Z 
+2026-10-29T17:39:50.8394761Z test 16
+2026-10-29T17:39:50.8395147Z       Start 16: sustained_concurrency
+2026-10-29T17:39:50.8395963Z 
+2026-10-29T17:39:50.8396734Z 16: Test command: /usr/bin/python3.12 "/home/runner/work/R-/R-/unfaltering/tests/integration/soak_test.py" "/home/runner/work/R-/R-/unfaltering/build/unfaltering"
+2026-10-29T17:39:50.8397903Z 16: Working Directory: /home/runner/work/R-/R-/unfaltering/build
+2026-10-29T17:39:50.8398450Z 16: Test timeout computed to be: 120
+2026-10-29T17:40:01.4171587Z 16: {"seconds": 10.006035731999987, "clients": 8, "transactions": 7602, "injected_disconnects": 840}
+2026-10-29T17:40:01.4172978Z 16: Child peak RSS 20960 KiB; peak checked proxy queue bytes 65604
+2026-10-29T17:40:01.4330603Z 16/16 Test #16: sustained_concurrency ............   Passed   10.60 sec
+2026-10-29T17:40:01.4346514Z 
+2026-10-29T17:40:01.4346917Z 94% tests passed, 1 tests failed out of 16
+2026-10-29T17:40:01.4347240Z 
+2026-10-29T17:40:01.4347503Z Total Test time (real) =  62.85 sec
+2026-10-29T17:40:01.4347745Z 
+2026-10-29T17:40:01.4350233Z The following tests FAILED:
+2026-10-29T17:40:01.4350738Z 	 15 - tls_integration (Failed)
+2026-10-29T17:40:01.4351457Z Errors while running CTest
+2026-10-29T17:40:01.5526871Z ##[error]Process completed with exit code 8.
+2026-10-29T17:40:01.5652568Z Cleaning up orphan processes
+

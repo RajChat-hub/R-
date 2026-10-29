@@ -17,8 +17,10 @@ TlsContext context(bool server) {
   if(!ctx||!SSL_CTX_set_min_proto_version(ctx.get(),TLS1_2_VERSION)||
      !SSL_CTX_set_max_proto_version(ctx.get(),TLS1_3_VERSION)) fail();
   SSL_CTX_set_security_level(ctx.get(),2);
-  SSL_CTX_set_options(ctx.get(),SSL_OP_NO_COMPRESSION|SSL_OP_NO_RENEGOTIATION);
+  SSL_CTX_set_options(ctx.get(),SSL_OP_NO_COMPRESSION|SSL_OP_NO_RENEGOTIATION|SSL_OP_NO_TICKET);
   SSL_CTX_set_mode(ctx.get(),SSL_MODE_ENABLE_PARTIAL_WRITE|SSL_MODE_RELEASE_BUFFERS);
+  SSL_CTX_set_max_cert_list(ctx.get(),65536);
+  SSL_CTX_set_read_ahead(ctx.get(),0);
   SSL_CTX_set_session_cache_mode(ctx.get(),SSL_SESS_CACHE_OFF);
   SSL_CTX_set_num_tickets(ctx.get(),0);
   SSL_CTX_set_max_early_data(ctx.get(),0);

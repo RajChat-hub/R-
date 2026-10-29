@@ -71,6 +71,7 @@ class TlsTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.proc.terminate();code=cls.proc.wait(timeout=5);cls.log.close()
         log=(cls.root/'server.log').read_text()
+        if os.environ.get('UF_TLS_DEBUG_LOG'):pathlib.Path(os.environ['UF_TLS_DEBUG_LOG']).write_text(log)
         for up,t in cls.services:up.shutdown();up.server_close();t.join(timeout=4)
         cls.blackhole.close()
         if code or 'AddressSanitizer' in log or 'runtime error:' in log:raise AssertionError(log)
@@ -160,6 +161,10 @@ class TlsTests(unittest.TestCase):
             digest=hashlib.sha256()
             for _ in range(4096):digest.update(p.BLOCK)
             self.assertEqual((status,result),(200,(128*1024*1024,digest.hexdigest())))
+    def test_complete_fixed_tls_tail_after_transport_eof(self):
+        # Regression: bare TLS EOF with 16KiB authenticated body still queued
+        # used to discard the tail when downstream output was backpressured.
+        for _ in range(3):self.test_streaming_backpressure_and_memory()
     def test_large_static_and_clean_close_notify(self):
         with self.connect() as s:
             s.sendall(b'GET /large.bin HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n')
