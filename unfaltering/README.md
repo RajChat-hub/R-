@@ -2,11 +2,11 @@
 
 **A SalesAutoMate™ Technology — Built to Endure. Engineered to Serve.**
 
-Version 0.2.0-dev. Original C++20 Linux HTTP server and native HTTP reverse-proxy foundation. **Development software, not approved for public production deployment.** First-party licensing remains pending owner approval; no licence grant follows from public repository visibility.
+Version 0.3.0-dev. Original C++20 Linux HTTP server and native HTTP/HTTPS reverse-proxy foundation. **Development software, not approved for public production deployment.** First-party licensing remains pending owner approval; no licence grant follows from public repository visibility.
 
 ## Build and test (Linux)
 
-Requires CMake 3.20+, GCC 13+ or compatible Clang, POSIX threads and Python 3 for independent tests. No prebuilt networking or server framework is used.
+Requires CMake 3.20+, GCC 13+ or compatible Clang, POSIX threads, security-maintained OpenSSL 3 development libraries and Python 3 for independent tests. No prebuilt networking or server framework is used.
 
 ```sh
 cmake -S unfaltering -B unfaltering/build -DCMAKE_BUILD_TYPE=Release
@@ -37,8 +37,10 @@ Static filesystem work runs in two bounded workers; request logging uses a separ
 
 ## Deliberate limits
 
-Linux only; numeric IPv4 upstreams only; plaintext HTTP only. No TLS, HTTP/2/3, FastCGI/PHP-FPM, cache, load balancing, DNS resolver, WebSocket/CONNECT tunnels, transactional reload, multi-reactor worker distribution, WAF or general availability. Expect: 100-continue, chunk extensions and nonempty trailers are rejected. Informational responses are consumed with a bounded count. Routes are not access controls.
+Linux only; numeric IPv4 upstreams only. Native TLS listeners and verified TLS upstreams are implemented; see [HTTPS operations and demonstration](docs/operations/TLS.md). No HTTP/2/3, FastCGI/PHP-FPM, cache, load balancing, DNS resolver, WebSocket/CONNECT tunnels, transactional reload, multi-reactor worker distribution, WAF or general availability. Expect: 100-continue, chunk extensions and nonempty trailers are rejected. Informational responses are consumed with a bounded count. Routes are not access controls.
 
-[Proxy configuration and demo](docs/operations/PROXY.md), [architecture](docs/architecture/OVERVIEW.md), [threat model](docs/security/THREAT_MODEL.md), [Phase 2 evidence](docs/release/PHASE2.md), [feature status](docs/release/STATUS.md).
+[Proxy configuration and demo](docs/operations/PROXY.md), [architecture](docs/architecture/OVERVIEW.md), [threat model](docs/security/THREAT_MODEL.md), [Phase 3 evidence](docs/release/PHASE3.md), [Phase 2 historical evidence](docs/release/PHASE2.md), [feature status](docs/release/STATUS.md).
 
 The Phase 1 validation record is retained as historical evidence. Phase 2 uses a separate branch and stacked draft PR; PR #1 is not merged automatically.
+
+Phase 3 is a separate stacked draft PR #3 targeting Phase 2. None of PRs #1/#2/#3 are merged automatically. Read the exact TLS scope, dependency policy, memory budgets and remaining release gates in the linked operations and release records.

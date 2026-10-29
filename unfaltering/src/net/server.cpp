@@ -221,8 +221,7 @@ bool Reactor::read(Connection &c, std::uint64_t id) {
           else request_pump(c);
           return !c.dead;
         }
-        if (c.input.empty())
-          return false;
+        if (c.input.empty()) {if(c.tls)c.graceful=true;return false;}
         dispatch(c, id);
         return true;
       } else if (errno == EINTR)
@@ -330,8 +329,10 @@ void Reactor::stop() {
     std::vector<std::uint64_t> drop;
     for (auto &[id, c] : clients) {
       c.close = true;
-      if (!c.writing)
-        drop.push_back(id);
+      if (!c.writing) {
+        c.graceful=true;
+        if(!tls_close(c)||!arm(c,id))drop.push_back(id);
+      }
     }
     for (auto id : drop)
       erase(id);
@@ -497,8 +498,10 @@ int Reactor::run() {
           continue;
         }
         if (now >= c.deadline) {
-          if (c.writing || !c.started)
-            drop.push_back(id);
+          if (c.writing || !c.started) {
+            if(!c.writing) c.graceful=true;
+            if(!tls_close(c)||!arm(c,id))drop.push_back(id);
+          }
           else {
             c.close = true;
             prepare(c, 408);

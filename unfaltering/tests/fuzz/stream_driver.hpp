@@ -30,7 +30,12 @@ inline FuzzResult drive(const std::uint8_t* data,std::size_t size,bool response,
 }
 inline int fuzz_stream(const std::uint8_t* data,std::size_t size,bool response) {
   if(size>65536)return 0;
-  if(drive(data,size,response,false,false)!=drive(data,size,response,false,true))std::abort();
-  if(response&&drive(data,size,true,true,false)!=drive(data,size,true,true,true))std::abort();
+  auto compare=[&](bool head) {
+    auto a=drive(data,size,response,head,false),b=drive(data,size,response,head,true);
+    // Invalid bodies may expose a different valid prefix before rejection.
+    // Acceptance, error category and successful boundaries must be invariant.
+    if(a.failed!=b.failed||a.done!=b.done||a.status!=b.status||(!a.failed&&a!=b))std::abort();
+  };
+  compare(false);if(response)compare(true);
   return 0;
 }

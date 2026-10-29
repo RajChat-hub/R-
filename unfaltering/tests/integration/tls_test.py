@@ -170,6 +170,11 @@ class TlsTests(unittest.TestCase):
             s.sendall(b'GET /large.bin HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n')
             self.assertEqual(p.Reader(s).response(digest=True)[2][0],8*1024*1024)
             raw=s.unwrap();raw.close() # Requires peer close_notify, not bare TCP EOF.
+    def test_idle_tls_close_notify(self):
+        with self.connect() as s:
+            time.sleep(1.2)
+            self.assertEqual(s.recv(1),b'')
+            raw=s.unwrap();raw.close()
     def test_invalid_framing_still_rejected(self):
         self.assertEqual(self.query('/proxy/echo','POST',b'x',b'Transfer-Encoding: chunked\r\n')[0],400)
         for path in ['bad-cl','bad-tecl','bad-fold','bad-coding']:

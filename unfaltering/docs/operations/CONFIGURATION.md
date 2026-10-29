@@ -36,3 +36,7 @@ Routes are global across configured hosts. Exact matches win; otherwise longest 
 Response bodies are never cached (`Cache-Control: no-store`). Proxy declarations and their stricter buffer requirements are documented in [PROXY.md](PROXY.md). TLS, cache and PHP configuration remain unsupported. Run unprivileged with read-only document roots; do not put secrets in any document root.
 
 Phase 2 adds buffer_bytes (default 65536), memory_budget_bytes (default 67108864) and response_body_bytes (default 1073741824). See PROXY.md for bounds, conservative memory reservations and upstream/proxy-route declarations. Global write_ms is an absolute deadline for static responses and a no-progress deadline for proxy client writes; the upstream response_ms bounds the entire finite proxy transaction.
+
+## Phase 3 TLS additions
+
+Optional server `tls { certificate PATH; private_key PATH; handshake_ms N; shutdown_ms N; }` enables TLS on the existing listener. Optional upstream `tls { verify_name IDENTITY; sni DNS_NAME_OR_off; ca_file PATH; }` enables mandatory peer verification to the unchanged numeric destination. Existing plaintext configs, host selection and route precedence remain valid. See [TLS.md](TLS.md) for exact validation, identity, timeout, memory and lifecycle rules. `--check` loads certificate/key/trust material before reporting success.
