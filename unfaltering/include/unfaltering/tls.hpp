@@ -9,6 +9,7 @@ namespace uf {
 struct ContextDeleter {void operator()(SSL_CTX* p) const {SSL_CTX_free(p);}};
 using TlsContext=std::unique_ptr<SSL_CTX,ContextDeleter>;
 TlsContext listener_context(const Config& cfg);
+TlsContext listener_context(const ListenerTls& tls);
 TlsContext upstream_context(const Upstream& upstream);
 void validate_tls(const Config& cfg);
 class Tls {

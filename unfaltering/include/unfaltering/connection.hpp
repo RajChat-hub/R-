@@ -16,6 +16,8 @@ inline auto ms(unsigned value) {
 }
 struct Connection {
   Fd socket, file;
+  std::size_t listener_index=0;
+  unsigned tls_shutdown_ms=500;
   std::unique_ptr<Tls> tls;
   bool tls_closing=false,graceful=false;
   Time tls_deadline{};
@@ -35,6 +37,6 @@ struct Connection {
 };
 inline std::size_t connection_reservation(const Config &c) {
   return 8 * c.limits.header_bytes + 8 * c.buffer_bytes + 512 * c.limits.header_count + 32768 +
-    ((c.tls.enabled||std::any_of(c.upstreams.begin(),c.upstreams.end(),[](const auto& item){return item.second.tls;}))?524288U:0U);
+    (uses_tls(c)?524288U:0U);
 }
 } // namespace uf

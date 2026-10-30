@@ -7,17 +7,22 @@
 namespace uf {
 class Reactor {
   const Config &cfg;
-  Fd epoll, listener, signals, reserve;
+  Fd epoll, signals, reserve;
+  struct BoundListener {
+    Listener config;Fd socket;TlsContext context;
+    std::uint64_t event=0;std::size_t active=0;
+    bool paused=false;Time retry{};
+  };
+  std::vector<BoundListener> listeners;
   std::map<std::string, Fd> roots;
   std::vector<Fd> route_roots;
-  TlsContext tls_listener;
   std::map<std::string,TlsContext> tls_upstreams;
   IoPool io;
   EventLog log;
   std::unordered_map<std::uint64_t, Connection> clients;
   std::uint64_t next_id = 4, requests = 0;
-  bool stopping = false, listener_paused = false;
-  Time stop_at{}, listener_retry{};
+  bool stopping = false;
+  Time stop_at{};
 
   std::unordered_map<std::uint64_t,std::uint64_t> upstream_events;
   std::size_t peak_proxy_bytes=0,peak_network_endpoints=0;
@@ -44,7 +49,7 @@ class Reactor {
   void completed_io();
   bool read(Connection &c, std::uint64_t id);
   bool write(Connection &c, std::uint64_t id);
-  void accept_clients();
+  void accept_clients(std::size_t index);
   void stop();
 public:
   explicit Reactor(const Config &config);

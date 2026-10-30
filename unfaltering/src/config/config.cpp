@@ -124,11 +124,50 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
     if(value.empty()||value.size()>253||!valid_host(value)||value.find(':')!=value.npos||value.find('*')!=value.npos)
       l.error("TLS identity requires literal DNS name or numeric IPv4 without port");
   };
+  auto parse_listener_tls = [&](ListenerTls& tls) {
+      tls.enabled=true;l.need("{");std::set<std::string> tls_keys;
+      while(l.word!="}") {
+        auto field=l.word;
+        if(field.empty()||!tls_keys.insert(field).second) l.error("duplicate or incomplete listener TLS option");
+        l.next();
+        if(field=="certificate")tls.certificate=file_path(l.value());
+        else if(field=="private_key")tls.private_key=file_path(l.value());
+        else if(field=="handshake_ms")tls.handshake_ms=numeric(l,100,60000);
+        else if(field=="shutdown_ms")tls.shutdown_ms=numeric(l,100,5000);
+        else l.error("unknown listener TLS option");
+      }
+      l.need("}");
+      if(tls.certificate.empty()||tls.private_key.empty()) l.error("TLS certificate and private_key required");
+  };
+  auto endpoint = [&](const std::string& value, std::string& bind, unsigned short& port) {
+    auto colon=value.find(':');if(colon==value.npos)l.error("numeric IPv4:port required");
+    bind=value.substr(0,colon);in_addr ip{};
+    if(inet_pton(AF_INET,bind.c_str(),&ip)!=1)l.error("invalid listener IPv4");
+    auto v=value.substr(colon+1);unsigned n=0;auto [end,ec]=std::from_chars(v.data(),v.data()+v.size(),n);
+    if(ec!=std::errc{}||end!=v.data()+v.size()||n<1||n>65535)l.error("invalid listener port");
+    port=static_cast<unsigned short>(n);
+  };
   while (l.word != "}") {
     auto key = l.word;
     if (key.empty())
       l.error("missing closing brace");
     l.next();
+    if(key=="listener") {
+      Listener listener;listener.name=l.word;
+      if(listener.name.empty()||listener.name.size()>64||!std::all_of(listener.name.begin(),listener.name.end(),[](char x){return (x>='a'&&x<='z')||(x>='A'&&x<='Z')||(x>='0'&&x<='9')||x=='_'||x=='-';}))l.error("invalid listener name");
+      for(const auto& old:c.listeners)if(old.name==listener.name)l.error("duplicate listener name");
+      if(c.listeners.size()>=16)l.error("at most 16 listeners");
+      l.next();l.need("{");std::set<std::string> seen;
+      while(l.word!="}") {
+        auto field=l.word;if(field.empty()||!seen.insert(field).second)l.error("duplicate/incomplete listener field");l.next();
+        if(field=="address")endpoint(l.value(),listener.bind,listener.port);
+        else if(field=="tls")parse_listener_tls(listener.tls);
+        else if(field=="max_connections")listener.max_connections=numeric(l,1,4096);
+        else l.error("unknown listener field");
+      }
+      l.need("}");if(!seen.contains("address"))l.error("listener address required");
+      c.listeners.push_back(std::move(listener));continue;
+    }
     if (key == "host") {
       auto name = lower(l.word);
       if (!valid_host(name) || name.find(':') != name.npos || c.hosts.contains(name))
@@ -224,21 +263,7 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
     }
     if (!keys.insert(key).second)
       l.error("duplicate key '" + key + "'");
-    if(key=="tls") {
-      c.tls.enabled=true;l.need("{");std::set<std::string> tls_keys;
-      while(l.word!="}") {
-        auto field=l.word;
-        if(field.empty()||!tls_keys.insert(field).second) l.error("duplicate or incomplete listener TLS option");
-        l.next();
-        if(field=="certificate")c.tls.certificate=file_path(l.value());
-        else if(field=="private_key")c.tls.private_key=file_path(l.value());
-        else if(field=="handshake_ms")c.tls.handshake_ms=numeric(l,100,60000);
-        else if(field=="shutdown_ms")c.tls.shutdown_ms=numeric(l,100,5000);
-        else l.error("unknown listener TLS option");
-      }
-      l.need("}");
-      if(c.tls.certificate.empty()||c.tls.private_key.empty()) l.error("TLS certificate and private_key required");
-    } else if (key == "listen") {
+    if(key=="tls") { parse_listener_tls(c.tls); } else if (key == "listen") {
       auto address = l.value();
       auto colon = address.find(':');
       if (colon == address.npos)
@@ -285,14 +310,19 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
   l.need("}");
   if (!l.word.empty())
     l.error("trailing content");
-  if (!keys.contains("listen") || c.root.empty())
+  if ((!keys.contains("listen")&&c.listeners.empty()) || c.root.empty())
     l.error("listen and root are required");
+  if(!c.listeners.empty()&&(keys.contains("listen")||keys.contains("tls")))l.error("legacy listen/tls cannot mix with listener blocks");
+  for(std::size_t i=0;i<c.listeners.size();++i)for(std::size_t j=0;j<i;++j) {
+    const auto& a=c.listeners[i];const auto& b=c.listeners[j];
+    if(a.port==b.port&&(a.bind==b.bind||a.bind=="0.0.0.0"||b.bind=="0.0.0.0"))l.error("conflicting listener bindings");
+  }
   for(const auto& route:c.routes) {
     if(!route.upstream.empty()&&!c.upstreams.contains(route.upstream)) l.error("proxy route references unknown upstream");
   }
   if(c.buffer_bytes<2*c.limits.header_bytes+1024) l.error("buffer_bytes must fit twice header_bytes plus 1024 bytes");
   if(8*c.limits.header_bytes+8*c.buffer_bytes+512*c.limits.header_count+32768+
-     ((c.tls.enabled||std::any_of(c.upstreams.begin(),c.upstreams.end(),[](const auto& item){return item.second.tls;}))?524288U:0U)>c.memory_budget_bytes)
+     (uses_tls(c)?524288U:0U)>c.memory_budget_bytes)
     l.error("memory budget cannot admit one connection");
   return c;
 }

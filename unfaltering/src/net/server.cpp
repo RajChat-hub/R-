@@ -56,7 +56,7 @@ void Reactor::tls_diagnostic(const Tls& tls,bool upstream) {
 bool Reactor::tls_close(Connection& c) {
   if(!c.tls||!c.tls->ready()||!c.graceful||c.dead)return false;
   if(!c.tls_closing) {
-    c.tls_closing=true;c.tls_deadline=Clock::now()+ms(cfg.tls.shutdown_ms);
+    c.tls_closing=true;c.tls_deadline=Clock::now()+ms(c.tls_shutdown_ms);
     release_upstream(c);c.proxy.reset();
   }
   return c.tls->shutdown()==0;
@@ -66,6 +66,7 @@ void Reactor::erase(std::uint64_t id) {
     if (it != clients.end()) {
       release_upstream(it->second);
       epoll_ctl(epoll.get(), EPOLL_CTL_DEL, it->second.socket.get(), nullptr);
+      --listeners[it->second.listener_index].active;
       clients.erase(it);
     }
   }
@@ -273,11 +274,12 @@ bool Reactor::write(Connection &c, std::uint64_t id) {
     return true;
   }
 
-void Reactor::accept_clients() {
+void Reactor::accept_clients(std::size_t index) {
+    auto& listener=listeners[index];
     for (unsigned i = 0; i < 64; ++i) {
       sockaddr_in peer{};
       socklen_t peer_size=sizeof peer;
-      int fd=accept4(listener.get(),reinterpret_cast<sockaddr*>(&peer),&peer_size,SOCK_NONBLOCK|SOCK_CLOEXEC);
+      int fd=accept4(listener.socket.get(),reinterpret_cast<sockaddr*>(&peer),&peer_size,SOCK_NONBLOCK|SOCK_CLOEXEC);
       if (fd < 0) {
         if (errno == EINTR)
           continue;
@@ -285,17 +287,18 @@ void Reactor::accept_clients() {
         // accept; disable the listener briefly to prevent a hot readiness loop.
         if (errno == EMFILE || errno == ENFILE) {
           reserve.reset();
-          int dropped = accept4(listener.get(), nullptr, nullptr, SOCK_NONBLOCK | SOCK_CLOEXEC);
+          int dropped = accept4(listener.socket.get(), nullptr, nullptr, SOCK_NONBLOCK | SOCK_CLOEXEC);
           if (dropped >= 0)
             ::close(dropped);
           reserve.reset(::open("/dev/null", O_RDONLY | O_CLOEXEC));
-          epoll_ctl(epoll.get(), EPOLL_CTL_DEL, listener.get(), nullptr);
-          listener_paused = true;
-          listener_retry = Clock::now() + ms(100);
+          epoll_ctl(epoll.get(), EPOLL_CTL_DEL, listener.socket.get(), nullptr);
+          listener.paused = true;
+          listener.retry = Clock::now() + ms(100);
         }
         return;
       }
       if (clients.size() >= cfg.max_connections ||
+          (listener.config.max_connections&&listener.active>=listener.config.max_connections) ||
           (clients.size() + 1) * connection_reservation(cfg) > cfg.memory_budget_bytes) {
         ::close(fd);
         continue;
@@ -303,17 +306,20 @@ void Reactor::accept_clients() {
       auto id = next_id++;
       auto [it, inserted] = clients.try_emplace(id, fd, cfg);
       (void)inserted;
+      ++listener.active;
+      it->second.listener_index=index;
+      it->second.tls_shutdown_ms=listener.config.tls.shutdown_ms;
       char peer_text[INET_ADDRSTRLEN]{};
       inet_ntop(AF_INET,&peer.sin_addr,peer_text,sizeof peer_text);
       it->second.peer=peer_text;
       try {
-        if(tls_listener) {
-          it->second.tls=std::make_unique<Tls>(tls_listener.get(),fd);
-          it->second.tls_deadline=Clock::now()+ms(cfg.tls.handshake_ms);
+        if(listener.context) {
+          it->second.tls=std::make_unique<Tls>(listener.context.get(),fd);
+          it->second.tls_deadline=Clock::now()+ms(listener.config.tls.handshake_ms);
         }
-        add(it->second.socket.get(), id, tls_listener?static_cast<std::uint32_t>(EPOLLIN|EPOLLOUT):static_cast<std::uint32_t>(EPOLLIN|EPOLLRDHUP));
+        add(it->second.socket.get(), id, listener.context?static_cast<std::uint32_t>(EPOLLIN|EPOLLOUT):static_cast<std::uint32_t>(EPOLLIN|EPOLLRDHUP));
       } catch (...) {
-        clients.erase(id);
+        --listener.active;clients.erase(id);
         throw;
       }
     }
@@ -324,8 +330,10 @@ void Reactor::stop() {
       return;
     stopping = true;
     stop_at = Clock::now() + ms(cfg.shutdown_ms);
-    epoll_ctl(epoll.get(), EPOLL_CTL_DEL, listener.get(), nullptr);
-    listener.reset();
+    for(auto& listener:listeners) {
+      epoll_ctl(epoll.get(),EPOLL_CTL_DEL,listener.socket.get(),nullptr);listener.socket.reset();
+      log.emit("{\"event\":\"listener_stopped\",\"listener\":"+std::to_string(listener.event)+"}\n");
+    }
     std::vector<std::uint64_t> drop;
     for (auto &[id, c] : clients) {
       c.close = true;
@@ -341,7 +349,9 @@ void Reactor::stop() {
 Reactor::Reactor(const Config &config) : cfg(config), epoll(epoll_create1(EPOLL_CLOEXEC)) {
     if (!epoll)
       throw std::runtime_error("epoll creation failed");
-    tls_listener=listener_context(cfg);
+    for(const auto& l:configured_listeners(cfg)) {
+      BoundListener bound;bound.config=l;bound.context=listener_context(l.tls);bound.event=next_id++;listeners.push_back(std::move(bound));
+    }
     for(const auto& [name,u]:cfg.upstreams) if(u.tls)tls_upstreams.emplace(name,upstream_context(u));
     roots.emplace("", open_root(cfg.root));
     for (const auto &[name, path] : cfg.hosts)
@@ -364,25 +374,24 @@ Reactor::Reactor(const Config &config) : cfg(config), epoll(epoll_create1(EPOLL_
     log.start();
     add(io.event_fd(), 3, EPOLLIN);
     reserve.reset(::open("/dev/null", O_RDONLY | O_CLOEXEC));
-    listener.reset(socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0));
-    if (!listener)
-      throw std::runtime_error("socket failed");
-    int yes = 1;
-    if (setsockopt(listener.get(), SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) < 0)
-      throw std::runtime_error("setsockopt failed");
-    sockaddr_in addr{};
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(cfg.port);
-    if (inet_pton(AF_INET, cfg.bind.c_str(), &addr.sin_addr) != 1)
-      throw std::runtime_error("invalid bind address");
-    if (bind(listener.get(), reinterpret_cast<sockaddr *>(&addr), sizeof addr) < 0 ||
-        listen(listener.get(), 128) < 0)
-      throw std::runtime_error("bind/listen failed");
-    add(listener.get(), 1, EPOLLIN);
+    // Initialize every endpoint before entering epoll_wait; RAII rolls all
+    // bindings back if any later bind, TLS preflight or registration fails.
+    for(auto& listener:listeners) {
+      listener.socket.reset(socket(AF_INET,SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC,0));
+      if(!listener.socket)throw std::runtime_error("listener socket failed");
+      int yes=1;
+      if(setsockopt(listener.socket.get(),SOL_SOCKET,SO_REUSEADDR,&yes,sizeof yes)<0)throw std::runtime_error("listener setsockopt failed");
+      sockaddr_in address{};address.sin_family=AF_INET;address.sin_port=htons(listener.config.port);
+      if(inet_pton(AF_INET,listener.config.bind.c_str(),&address.sin_addr)!=1)throw std::runtime_error("listener address failed");
+      if(bind(listener.socket.get(),reinterpret_cast<sockaddr*>(&address),sizeof address)<0||listen(listener.socket.get(),128)<0)
+        throw std::runtime_error("listener bind/listen failed");
+    }
+    for(auto& listener:listeners)add(listener.socket.get(),listener.event,EPOLLIN);
+
   }
 
 int Reactor::run() {
-    log.emit("{\"event\":\"listening\",\"port\":" + std::to_string(cfg.port) + "}\n");
+    for(const auto& listener:listeners)log.emit("{\"event\":\"listening\",\"listener\":"+std::to_string(listener.event)+",\"port\":"+std::to_string(listener.config.port)+"}\n");
     std::array<epoll_event, 128> events{};
     while (!stopping || !clients.empty()) {
       int n = epoll_wait(epoll.get(), events.data(), static_cast<int>(events.size()), 50);
@@ -405,9 +414,9 @@ int Reactor::run() {
           stop();
           continue;
         }
-        if (id == 1) {
-          if (!stopping)
-            accept_clients();
+        auto bound=std::find_if(listeners.begin(),listeners.end(),[&](const auto& l){return l.event==id;});
+        if(bound!=listeners.end()) {
+          if(!stopping)accept_clients(static_cast<std::size_t>(bound-listeners.begin()));
           continue;
         }
         if(auto upstream=upstream_events.find(id);upstream!=upstream_events.end()) {
@@ -455,9 +464,8 @@ int Reactor::run() {
       }
       peak_network_endpoints=std::max(peak_network_endpoints,clients.size()+upstream_events.size());
       auto now = Clock::now();
-      if (listener_paused && !stopping && now >= listener_retry) {
-        add(listener.get(), 1, EPOLLIN);
-        listener_paused = false;
+      for(auto& listener:listeners)if(listener.paused&&!stopping&&now>=listener.retry) {
+        add(listener.socket.get(),listener.event,EPOLLIN);listener.paused=false;
       }
       std::vector<std::uint64_t> drop;
       for (auto &[id, c] : clients) {

@@ -3,6 +3,7 @@
 #include "http.hpp"
 #include "routing.hpp"
 #include <filesystem>
+#include <algorithm>
 #include <map>
 #include <string>
 namespace uf {
@@ -10,6 +11,12 @@ struct ListenerTls {
   bool enabled=false;
   std::filesystem::path certificate,private_key;
   unsigned handshake_ms=3000,shutdown_ms=500;
+};
+struct Listener {
+  std::string name,bind="127.0.0.1";
+  unsigned short port=8080;
+  unsigned max_connections=0;
+  ListenerTls tls;
 };
 struct Upstream {
   bool tls=false;
@@ -22,6 +29,7 @@ struct Upstream {
 };
 struct Config {
   ListenerTls tls;
+  std::vector<Listener> listeners;
   std::string bind = "127.0.0.1";
   unsigned short port = 8080;
   std::filesystem::path root;
@@ -34,6 +42,14 @@ struct Config {
   unsigned max_connections = 256, max_requests = 100, idle_ms = 10000, request_ms = 5000,
            write_ms = 10000, shutdown_ms = 3000;
 };
+inline std::vector<Listener> configured_listeners(const Config& c) {
+  if(!c.listeners.empty())return c.listeners;
+  return {Listener{"legacy",c.bind,c.port,c.max_connections,c.tls}};
+}
+inline bool uses_tls(const Config& c) {
+  return c.tls.enabled||std::any_of(c.listeners.begin(),c.listeners.end(),[](const auto& l){return l.tls.enabled;})||
+    std::any_of(c.upstreams.begin(),c.upstreams.end(),[](const auto& u){return u.second.tls;});
+}
 Config parse_config(std::string_view text, const std::filesystem::path &source);
 Config read_config(const std::filesystem::path &file);
 } // namespace uf

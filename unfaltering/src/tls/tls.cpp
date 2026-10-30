@@ -42,13 +42,14 @@ int alpn(SSL*,const unsigned char** out,unsigned char* len,const unsigned char* 
   return SSL_TLSEXT_ERR_OK;
 }
 }
-TlsContext listener_context(const Config& cfg) {
-  if(!cfg.tls.enabled) return {};
-  bounded_file(cfg.tls.certificate);bounded_file(cfg.tls.private_key);
+TlsContext listener_context(const Config& cfg) {return listener_context(cfg.tls);}
+TlsContext listener_context(const ListenerTls& tls) {
+  if(!tls.enabled) return {};
+  bounded_file(tls.certificate);bounded_file(tls.private_key);
   auto ctx=context(true);
   SSL_CTX_set_default_passwd_cb(ctx.get(),no_password);
-  if(SSL_CTX_use_certificate_chain_file(ctx.get(),cfg.tls.certificate.c_str())!=1||
-     SSL_CTX_use_PrivateKey_file(ctx.get(),cfg.tls.private_key.c_str(),SSL_FILETYPE_PEM)!=1||
+  if(SSL_CTX_use_certificate_chain_file(ctx.get(),tls.certificate.c_str())!=1||
+     SSL_CTX_use_PrivateKey_file(ctx.get(),tls.private_key.c_str(),SSL_FILETYPE_PEM)!=1||
      SSL_CTX_check_private_key(ctx.get())!=1) fail();
   X509* cert=SSL_CTX_get0_certificate(ctx.get());
   if(!cert||X509_cmp_current_time(X509_get0_notBefore(cert))>=0||X509_cmp_current_time(X509_get0_notAfter(cert))<=0) fail();
@@ -65,7 +66,7 @@ TlsContext upstream_context(const Upstream& upstream) {
   return ctx;
 }
 void validate_tls(const Config& cfg) {
-  auto listener=listener_context(cfg);
+  for(const auto& l:configured_listeners(cfg)) {auto ctx=listener_context(l.tls);(void)ctx;}
   for(const auto& [name,u]:cfg.upstreams) {(void)name;auto ctx=upstream_context(u);}
 }
 Tls::Tls(SSL_CTX* ctx,int fd,const Upstream* upstream):ssl_(SSL_new(ctx)) {
