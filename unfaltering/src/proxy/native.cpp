@@ -29,6 +29,7 @@ void Reactor::check_proxy_budget(Connection& c) {
 void Reactor::release_upstream(Connection& c) {
   if(!c.proxy) return;
   auto& p=*c.proxy;
+  if(p.tracked) {if(!p.backend||!p.backend->active)throw std::runtime_error("backend active invariant");--p.backend->active;p.tracked=false;}
   if(p.registered&&p.socket) epoll_ctl(epoll.get(),EPOLL_CTL_DEL,p.socket.get(),nullptr);
   p.registered=false;
   upstream_events.erase(p.event);
@@ -56,6 +57,7 @@ void Reactor::start_proxy(Connection& c,std::uint64_t id,const Upstream& u) {
   c.write_deadline=Clock::now()+ms(cfg.write_ms);
   c.proxy=std::make_unique<ProxyTransaction>(cfg,u,c.parser.head().method=="HEAD");
   auto& p=*c.proxy;
+  p.backend=&balancer.state(u);++p.backend->active;p.tracked=true;
   p.event=next_id++;
   p.connect_deadline=Clock::now()+ms(u.connect_ms);
   p.response_deadline=Clock::now()+ms(u.response_ms);

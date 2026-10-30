@@ -22,7 +22,9 @@ struct Listener {
   unsigned max_connections=0;
   ListenerTls tls;
 };
+struct Pool {std::vector<std::string> members;};
 struct Upstream {
+  unsigned max_connections=4096;
   bool tls=false;
   std::string verify_name,sni;
   std::filesystem::path ca_file;
@@ -42,6 +44,7 @@ struct Config {
   std::size_t buffer_bytes = 65536, memory_budget_bytes = 67108864;
   std::vector<Route> routes;
   std::map<std::string,Upstream> upstreams;
+  std::map<std::string,Pool> pools;
   std::size_t response_body_bytes=1073741824;
   unsigned max_connections = 256, max_requests = 100, idle_ms = 10000, request_ms = 5000,
            write_ms = 10000, shutdown_ms = 3000;

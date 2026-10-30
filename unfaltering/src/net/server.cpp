@@ -100,7 +100,12 @@ void Reactor::dispatch(Connection &c, std::uint64_t id) {
       c.close=true;prepare(c,421,c.parser.head().method=="HEAD");return;
     }
     if(auto route=match_route(cfg.routes,c.parser.head().target);route&&!route->upstream.empty()) {
-      start_proxy(c,id,cfg.upstreams.at(route->upstream));
+      auto selected=balancer.select(route->upstream);
+      if(!selected) {
+        log.emit("{\"event\":\"selection_unavailable\",\"target\":\""+route->upstream+"\"}\n");
+        c.close=true;prepare(c,503,c.parser.head().method=="HEAD");return;
+      }
+      start_proxy(c,id,*selected->target);
       return;
     }
   }
@@ -350,7 +355,7 @@ void Reactor::stop() {
       erase(id);
   }
 
-Reactor::Reactor(const Config &config) : cfg(config), epoll(epoll_create1(EPOLL_CLOEXEC)) {
+Reactor::Reactor(const Config &config) : cfg(config), balancer(config), epoll(epoll_create1(EPOLL_CLOEXEC)) {
     if (!epoll)
       throw std::runtime_error("epoll creation failed");
     for(const auto& l:configured_listeners(cfg)) {

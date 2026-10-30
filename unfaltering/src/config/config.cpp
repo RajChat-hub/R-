@@ -207,6 +207,21 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
       c.hosts.emplace(name, p);
       continue;
     }
+    if(key=="pool") {
+      auto name=l.word;
+      if(name.empty()||name.size()>64||!std::all_of(name.begin(),name.end(),[](char x){return (x>='a'&&x<='z')||(x>='A'&&x<='Z')||(x>='0'&&x<='9')||x=='_'||x=='-';})||c.pools.contains(name)||c.pools.size()>=32)l.error("invalid, duplicate or excessive pool");
+      l.next();l.need("{");Pool pool;bool algorithm=false;
+      while(l.word!="}") {
+        auto field=l.word;l.next();
+        if(field=="member") {
+          auto member=l.value();
+          if(pool.members.size()>=64||std::find(pool.members.begin(),pool.members.end(),member)!=pool.members.end())l.error("duplicate or excessive pool member");
+          pool.members.push_back(member);
+        } else if(field=="algorithm"&&!algorithm) {algorithm=true;if(l.value()!="round_robin")l.error("only round_robin is implemented");}
+        else l.error("unknown or duplicate pool field");
+      }
+      l.need("}");if(pool.members.empty())l.error("empty pool");c.pools.emplace(name,std::move(pool));continue;
+    }
     if (key == "upstream") {
       auto name=l.word;
       if(name.empty()||name.size()>64||!std::all_of(name.begin(),name.end(),[](char x){
@@ -252,7 +267,8 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
         } else if(field=="host") {
           u.host=l.value();
           if(!valid_host(u.host)) l.error("invalid controlled upstream Host");
-        } else if(field=="connect_ms") u.connect_ms=numeric(l,100,60000);
+        } else if(field=="max_connections") u.max_connections=numeric(l,1,4096);
+        else if(field=="connect_ms") u.connect_ms=numeric(l,100,60000);
         else if(field=="response_ms") u.response_ms=numeric(l,100,60000);
         else if(field=="write_ms") u.write_ms=numeric(l,100,60000);
         else if(field=="forwarding") {
@@ -264,6 +280,7 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
       l.need("}");
       if(u.address.empty()) l.error("upstream address required");
       if(u.host.empty()) u.host=u.address+":"+std::to_string(u.port);
+      if(c.upstreams.size()>=64)l.error("at most 64 configured backends");
       c.upstreams.emplace(name,std::move(u));
       continue;
     }
@@ -344,8 +361,19 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
     const auto& a=c.listeners[i];const auto& b=c.listeners[j];
     if(a.port==b.port&&(a.bind==b.bind||a.bind=="0.0.0.0"||b.bind=="0.0.0.0"))l.error("conflicting listener bindings");
   }
+  std::size_t member_count=0;
+  for(const auto& [name,pool]:c.pools) {
+    if(c.upstreams.contains(name))l.error("pool/upstream namespace collision");
+    std::set<std::string> endpoints;
+    member_count+=pool.members.size();
+    for(const auto& member:pool.members) {
+      auto it=c.upstreams.find(member);if(it==c.upstreams.end())l.error("unknown pool member");
+      if(!endpoints.insert(it->second.address+":"+std::to_string(it->second.port)).second)l.error("duplicate endpoint within pool");
+    }
+  }
+  if(member_count>256)l.error("at most 256 total pool memberships");
   for(const auto& route:c.routes) {
-    if(!route.upstream.empty()&&!c.upstreams.contains(route.upstream)) l.error("proxy route references unknown upstream");
+    if(!route.upstream.empty()&&!c.upstreams.contains(route.upstream)&&!c.pools.contains(route.upstream)) l.error("proxy route references unknown upstream");
   }
   std::size_t identities=0;
   for(const auto& listener:configured_listeners(c))if(listener.tls.enabled)identities+=1+listener.tls.sites.size();

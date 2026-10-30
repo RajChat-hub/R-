@@ -7,6 +7,7 @@
 namespace uf {
 class Reactor {
   const Config &cfg;
+  Balancer balancer;
   Fd epoll, signals, reserve;
   struct BoundListener {
     Listener config;Fd socket;std::unique_ptr<TlsRegistry> context;
