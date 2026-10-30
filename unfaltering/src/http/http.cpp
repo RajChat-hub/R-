@@ -88,6 +88,8 @@ std::string reason(int s) {
     return "Content Too Large";
   case 417:
     return "Expectation Failed";
+  case 421:
+    return "Misdirected Request";
   case 431:
     return "Request Header Fields Too Large";
   case 500:

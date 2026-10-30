@@ -95,6 +95,10 @@ void Reactor::dispatch(Connection &c, std::uint64_t id) {
     if(!n) break;
   }
   if(c.parser.ready()&&!c.parser.failed()) {
+    if(c.tls&&!c.tls->allows_host(c.parser.head().host)) {
+      log.emit("{\"event\":\"tls_site_mismatch\",\"listener\":"+std::to_string(listeners[c.listener_index].event)+"}\n");
+      c.close=true;prepare(c,421,c.parser.head().method=="HEAD");return;
+    }
     if(auto route=match_route(cfg.routes,c.parser.head().target);route&&!route->upstream.empty()) {
       start_proxy(c,id,cfg.upstreams.at(route->upstream));
       return;
@@ -314,7 +318,7 @@ void Reactor::accept_clients(std::size_t index) {
       it->second.peer=peer_text;
       try {
         if(listener.context) {
-          it->second.tls=std::make_unique<Tls>(listener.context.get(),fd);
+          it->second.tls=std::make_unique<Tls>(listener.context->context(),fd,nullptr,listener.context.get());
           it->second.tls_deadline=Clock::now()+ms(listener.config.tls.handshake_ms);
         }
         add(it->second.socket.get(), id, listener.context?static_cast<std::uint32_t>(EPOLLIN|EPOLLOUT):static_cast<std::uint32_t>(EPOLLIN|EPOLLRDHUP));
@@ -350,7 +354,7 @@ Reactor::Reactor(const Config &config) : cfg(config), epoll(epoll_create1(EPOLL_
     if (!epoll)
       throw std::runtime_error("epoll creation failed");
     for(const auto& l:configured_listeners(cfg)) {
-      BoundListener bound;bound.config=l;bound.context=listener_context(l.tls);bound.event=next_id++;listeners.push_back(std::move(bound));
+      BoundListener bound;bound.config=l;if(l.tls.enabled)bound.context=std::make_unique<TlsRegistry>(l.tls);bound.event=next_id++;listeners.push_back(std::move(bound));
     }
     for(const auto& [name,u]:cfg.upstreams) if(u.tls)tls_upstreams.emplace(name,upstream_context(u));
     roots.emplace("", open_root(cfg.root));

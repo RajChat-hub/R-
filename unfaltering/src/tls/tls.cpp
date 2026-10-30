@@ -1,5 +1,6 @@
 // Copyright (c) 2026 SalesAutoMate. First-party licensing pending.
 #include "unfaltering/tls.hpp"
+#include "unfaltering/site.hpp"
 #include <openssl/err.h>
 #include <openssl/x509v3.h>
 #include <arpa/inet.h>
@@ -66,10 +67,43 @@ TlsContext upstream_context(const Upstream& upstream) {
   return ctx;
 }
 void validate_tls(const Config& cfg) {
-  for(const auto& l:configured_listeners(cfg)) {auto ctx=listener_context(l.tls);(void)ctx;}
+  for(const auto& l:configured_listeners(cfg))if(l.tls.enabled) {TlsRegistry registry(l.tls);}
   for(const auto& [name,u]:cfg.upstreams) {(void)name;auto ctx=upstream_context(u);}
 }
-Tls::Tls(SSL_CTX* ctx,int fd,const Upstream* upstream):ssl_(SSL_new(ctx)) {
+TlsRegistry::TlsRegistry(const ListenerTls& policy):policy_(policy),default_(listener_context(policy)) {
+  auto validate_name=[](SSL_CTX* ctx,const std::string& name) {
+    if(!name.empty()&&X509_check_host(SSL_CTX_get0_certificate(ctx),name.c_str(),name.size(),
+       X509_CHECK_FLAG_NO_WILDCARDS|X509_CHECK_FLAG_NEVER_CHECK_SUBJECT,nullptr)!=1)fail();
+  };
+  validate_name(default_.get(),policy_.default_name);
+  for(const auto& [name,cert]:policy_.sites) {
+    ListenerTls identity;identity.enabled=true;identity.certificate=cert.certificate;identity.private_key=cert.private_key;
+    auto ctx=listener_context(identity);validate_name(ctx.get(),name);sites_.emplace(name,std::move(ctx));
+  }
+  SSL_CTX_set_tlsext_servername_callback(default_.get(),select);
+  SSL_CTX_set_tlsext_servername_arg(default_.get(),this);
+  for(auto& [name,ctx]:sites_) {
+    (void)name;SSL_CTX_set_tlsext_servername_callback(ctx.get(),select);SSL_CTX_set_tlsext_servername_arg(ctx.get(),this);
+  }
+}
+int TlsRegistry::select(SSL* ssl,int* alert,void* argument) noexcept {
+  try {
+    auto& registry=*static_cast<TlsRegistry*>(argument);
+    const char* raw=SSL_get_servername(ssl,TLSEXT_NAMETYPE_host_name);
+    auto name=select_site(registry.policy_,raw?std::string_view(raw):std::string_view());
+    if(!name) {*alert=SSL_AD_UNRECOGNIZED_NAME;return SSL_TLSEXT_ERR_ALERT_FATAL;}
+    auto it=registry.sites_.find(*name);
+    if(!SSL_set_SSL_CTX(ssl,it==registry.sites_.end()?registry.default_.get():it->second.get())) {
+      *alert=SSL_AD_INTERNAL_ERROR;return SSL_TLSEXT_ERR_ALERT_FATAL;
+    }
+    return SSL_TLSEXT_ERR_OK;
+  } catch(...) {*alert=SSL_AD_INTERNAL_ERROR;return SSL_TLSEXT_ERR_ALERT_FATAL;}
+}
+bool TlsRegistry::allows_host(SSL* ssl,std::string_view host) const {
+  const char* sni=SSL_get_servername(ssl,TLSEXT_NAMETYPE_host_name);
+  return site_host_matches(policy_,sni?std::string_view(sni):std::string_view(),host);
+}
+Tls::Tls(SSL_CTX* ctx,int fd,const Upstream* upstream,const TlsRegistry* registry):ssl_(SSL_new(ctx)),registry_(registry) {
   if(!ssl_) fail();
   if(SSL_set_fd(ssl_,fd)!=1) {SSL_free(ssl_);ssl_=nullptr;fail();}
   if(upstream) {

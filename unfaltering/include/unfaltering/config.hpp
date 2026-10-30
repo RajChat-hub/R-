@@ -7,7 +7,11 @@
 #include <map>
 #include <string>
 namespace uf {
+struct Certificate {std::filesystem::path certificate,private_key;};
 struct ListenerTls {
+  std::string default_name;
+  std::map<std::string,Certificate> sites;
+  bool unknown_reject=false,require_sni=false,strict_host=false;
   bool enabled=false;
   std::filesystem::path certificate,private_key;
   unsigned handshake_ms=3000,shutdown_ms=500;

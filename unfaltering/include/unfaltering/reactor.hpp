@@ -9,7 +9,7 @@ class Reactor {
   const Config &cfg;
   Fd epoll, signals, reserve;
   struct BoundListener {
-    Listener config;Fd socket;TlsContext context;
+    Listener config;Fd socket;std::unique_ptr<TlsRegistry> context;
     std::uint64_t event=0;std::size_t active=0;
     bool paused=false;Time retry{};
   };
