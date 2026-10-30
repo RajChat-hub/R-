@@ -1,5 +1,6 @@
 // Copyright (c) 2026 SalesAutoMate. First-party licensing pending.
 #include "unfaltering/config.hpp"
+#include "unfaltering/site.hpp"
 #include <arpa/inet.h>
 #include <algorithm>
 #include <charconv>
@@ -124,11 +125,78 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
     if(value.empty()||value.size()>253||!valid_host(value)||value.find(':')!=value.npos||value.find('*')!=value.npos)
       l.error("TLS identity requires literal DNS name or numeric IPv4 without port");
   };
+  auto parse_listener_tls = [&](ListenerTls& tls) {
+      tls.enabled=true;l.need("{");std::set<std::string> tls_keys;
+      while(l.word!="}") {
+        auto field=l.word;
+        if(field.empty()||(field!="site"&&!tls_keys.insert(field).second)) l.error("duplicate or incomplete listener TLS option");
+        l.next();
+        if(field=="site") {
+          auto name=dns_identity(l.word);
+          if(!name||tls.sites.contains(*name)||tls.sites.size()>=32)l.error("invalid, duplicate or excessive TLS site");
+          l.next();l.need("{");Certificate cert;std::set<std::string> seen;
+          while(l.word!="}") {
+            auto option=l.word;if(option.empty()||!seen.insert(option).second)l.error("duplicate/incomplete TLS site");l.next();
+            if(option=="certificate")cert.certificate=file_path(l.value());
+            else if(option=="private_key")cert.private_key=file_path(l.value());
+            else l.error("unknown TLS site field");
+          }
+          l.need("}");if(cert.certificate.empty()||cert.private_key.empty())l.error("site certificate and key required");
+          tls.sites.emplace(*name,std::move(cert));
+        } else if(field=="default_name") {
+          auto name=dns_identity(l.value());if(!name)l.error("invalid default TLS DNS identity");tls.default_name=*name;
+        } else if(field=="unknown_sni"||field=="no_sni"||field=="host_sni") {
+          auto value=l.value();
+          if(field=="host_sni") {if(value!="strict"&&value!="off")l.error("host_sni requires strict/off");tls.strict_host=value=="strict";}
+          else {if(value!="reject"&&value!="default")l.error("SNI policy requires reject/default");if(field=="unknown_sni")tls.unknown_reject=value=="reject";else tls.require_sni=value=="reject";}
+        } else if(field=="certificate")tls.certificate=file_path(l.value());
+        else if(field=="private_key")tls.private_key=file_path(l.value());
+        else if(field=="handshake_ms")tls.handshake_ms=numeric(l,100,60000);
+        else if(field=="shutdown_ms")tls.shutdown_ms=numeric(l,100,5000);
+        else l.error("unknown listener TLS option");
+      }
+      l.need("}");
+      if(!tls.sites.empty()) {
+        if(tls.default_name.empty())l.error("multi-certificate TLS requires explicit default_name");
+        if(tls.sites.contains(tls.default_name))l.error("default TLS identity duplicates site");
+        if(!tls_keys.contains("unknown_sni"))tls.unknown_reject=true;
+        if(!tls_keys.contains("no_sni"))tls.require_sni=true;
+        if(!tls_keys.contains("host_sni"))tls.strict_host=true;
+      }
+      if(tls.strict_host&&tls.default_name.empty())l.error("strict Host/SNI needs default_name");
+      if(tls.certificate.empty()||tls.private_key.empty()) l.error("TLS certificate and private_key required");
+  };
+  auto endpoint = [&](const std::string& value, std::string& bind, unsigned short& port) {
+    auto colon=value.find(':');if(colon==value.npos)l.error("numeric IPv4:port required");
+    bind=value.substr(0,colon);in_addr ip{};
+    if(inet_pton(AF_INET,bind.c_str(),&ip)!=1)l.error("invalid listener IPv4");
+    auto v=value.substr(colon+1);unsigned n=0;auto [end,ec]=std::from_chars(v.data(),v.data()+v.size(),n);
+    if(ec!=std::errc{}||end!=v.data()+v.size()||n<1||n>65535)l.error("invalid listener port");
+    port=static_cast<unsigned short>(n);
+  };
   while (l.word != "}") {
     auto key = l.word;
     if (key.empty())
       l.error("missing closing brace");
     l.next();
+    if(key=="listener") {
+      Listener listener;listener.name=l.word;
+      if(listener.name.empty()||listener.name.size()>64||!std::all_of(listener.name.begin(),listener.name.end(),[](char x){return (x>='a'&&x<='z')||(x>='A'&&x<='Z')||(x>='0'&&x<='9')||x=='_'||x=='-';}))l.error("invalid listener name");
+      for(const auto& old:c.listeners)if(old.name==listener.name)l.error("duplicate listener name");
+      if(c.listeners.size()>=16)l.error("at most 16 listeners");
+      l.next();l.need("{");std::set<std::string> seen;
+      while(l.word!="}") {
+        auto field=l.word;if(field.empty()||!seen.insert(field).second)l.error("duplicate/incomplete listener field");l.next();
+        if(field=="address")endpoint(l.value(),listener.bind,listener.port);
+        else if(field=="tls")parse_listener_tls(listener.tls);
+        else if(field=="metrics") {listener.metrics=l.value();if(listener.metrics.empty()||listener.metrics.front()!='/'||listener.metrics.size()>128||listener.metrics.find_first_of("%?# \t")!=std::string::npos)l.error("invalid metrics path");}
+        else if(field=="max_connections")listener.max_connections=numeric(l,1,4096);
+        else l.error("unknown listener field");
+      }
+      l.need("}");if(!seen.contains("address"))l.error("listener address required");
+      if(!listener.metrics.empty()) {in_addr ip{};inet_pton(AF_INET,listener.bind.c_str(),&ip);if((ntohl(ip.s_addr)>>24)!=127)l.error("metrics listener must bind loopback IPv4");}
+      c.listeners.push_back(std::move(listener));continue;
+    }
     if (key == "host") {
       auto name = lower(l.word);
       if (!valid_host(name) || name.find(':') != name.npos || c.hosts.contains(name))
@@ -140,6 +208,21 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
       l.need("}");
       c.hosts.emplace(name, p);
       continue;
+    }
+    if(key=="pool") {
+      auto name=l.word;
+      if(name.empty()||name.size()>64||!std::all_of(name.begin(),name.end(),[](char x){return (x>='a'&&x<='z')||(x>='A'&&x<='Z')||(x>='0'&&x<='9')||x=='_'||x=='-';})||c.pools.contains(name)||c.pools.size()>=32)l.error("invalid, duplicate or excessive pool");
+      l.next();l.need("{");Pool pool;bool algorithm=false;
+      while(l.word!="}") {
+        auto field=l.word;l.next();
+        if(field=="member") {
+          auto member=l.value();
+          if(pool.members.size()>=64||std::find(pool.members.begin(),pool.members.end(),member)!=pool.members.end())l.error("duplicate or excessive pool member");
+          pool.members.push_back(member);
+        } else if(field=="algorithm"&&!algorithm) {algorithm=true;if(l.value()!="round_robin")l.error("only round_robin is implemented");}
+        else l.error("unknown or duplicate pool field");
+      }
+      l.need("}");if(pool.members.empty())l.error("empty pool");c.pools.emplace(name,std::move(pool));continue;
     }
     if (key == "upstream") {
       auto name=l.word;
@@ -153,7 +236,22 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
         auto field=l.word;
         if(field.empty()||!seen.insert(field).second) l.error("duplicate or incomplete upstream");
         l.next();
-        if(field=="tls") {
+        if(field=="health") {
+          u.health.enabled=true;l.need("{");std::set<std::string> options;
+          while(l.word!="}") {
+            auto option=l.word;if(option.empty()||!options.insert(option).second)l.error("duplicate/incomplete health option");l.next();
+            if(option=="path") {
+              u.health.path=l.value();
+              if(u.health.path.empty()||u.health.path.front()!='/'||u.health.path.size()>1024||u.health.path.find('#')!=std::string::npos||!std::all_of(u.health.path.begin(),u.health.path.end(),[](unsigned char byte){return byte>32&&byte<127;}))l.error("health path must be bounded origin form");
+            } else if(option=="interval_ms")u.health.interval_ms=numeric(l,200,60000);
+            else if(option=="timeout_ms")u.health.timeout_ms=numeric(l,100,60000);
+            else if(option=="failures")u.health.failures=numeric(l,1,100);
+            else if(option=="recoveries")u.health.recoveries=numeric(l,1,100);
+            else if(option=="expect_status")u.health.expect_status=numeric(l,200,399);
+            else l.error("unknown health option");
+          }
+          l.need("}");
+        } else if(field=="tls") {
           u.tls=true;l.need("{");std::set<std::string> tls_keys;
           while(l.word!="}") {
             auto option=l.word;
@@ -186,7 +284,8 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
         } else if(field=="host") {
           u.host=l.value();
           if(!valid_host(u.host)) l.error("invalid controlled upstream Host");
-        } else if(field=="connect_ms") u.connect_ms=numeric(l,100,60000);
+        } else if(field=="max_connections") u.max_connections=numeric(l,1,4096);
+        else if(field=="connect_ms") u.connect_ms=numeric(l,100,60000);
         else if(field=="response_ms") u.response_ms=numeric(l,100,60000);
         else if(field=="write_ms") u.write_ms=numeric(l,100,60000);
         else if(field=="forwarding") {
@@ -198,6 +297,7 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
       l.need("}");
       if(u.address.empty()) l.error("upstream address required");
       if(u.host.empty()) u.host=u.address+":"+std::to_string(u.port);
+      if(c.upstreams.size()>=64)l.error("at most 64 configured backends");
       c.upstreams.emplace(name,std::move(u));
       continue;
     }
@@ -224,21 +324,7 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
     }
     if (!keys.insert(key).second)
       l.error("duplicate key '" + key + "'");
-    if(key=="tls") {
-      c.tls.enabled=true;l.need("{");std::set<std::string> tls_keys;
-      while(l.word!="}") {
-        auto field=l.word;
-        if(field.empty()||!tls_keys.insert(field).second) l.error("duplicate or incomplete listener TLS option");
-        l.next();
-        if(field=="certificate")c.tls.certificate=file_path(l.value());
-        else if(field=="private_key")c.tls.private_key=file_path(l.value());
-        else if(field=="handshake_ms")c.tls.handshake_ms=numeric(l,100,60000);
-        else if(field=="shutdown_ms")c.tls.shutdown_ms=numeric(l,100,5000);
-        else l.error("unknown listener TLS option");
-      }
-      l.need("}");
-      if(c.tls.certificate.empty()||c.tls.private_key.empty()) l.error("TLS certificate and private_key required");
-    } else if (key == "listen") {
+    if(key=="tls") { parse_listener_tls(c.tls); } else if (key == "listen") {
       auto address = l.value();
       auto colon = address.find(':');
       if (colon == address.npos)
@@ -255,6 +341,9 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
       c.port = static_cast<unsigned short>(n);
     } else if (key == "root")
       c.root = path(l.value());
+    else if(key=="probe_concurrency")c.probe_concurrency=numeric(l,1,16);
+    else if(key=="probe_spacing_ms")c.probe_spacing_ms=numeric(l,25,1000);
+    else if(key=="tls_context_budget_bytes")c.tls_context_budget_bytes=numeric(l,2097152,1073741824);
     else if (key == "max_connections")
       c.max_connections = numeric(l, 1, 4096);
     else if (key == "max_requests")
@@ -285,14 +374,37 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
   l.need("}");
   if (!l.word.empty())
     l.error("trailing content");
-  if (!keys.contains("listen") || c.root.empty())
+  if ((!keys.contains("listen")&&c.listeners.empty()) || c.root.empty())
     l.error("listen and root are required");
-  for(const auto& route:c.routes) {
-    if(!route.upstream.empty()&&!c.upstreams.contains(route.upstream)) l.error("proxy route references unknown upstream");
+  if(!c.listeners.empty()&&(keys.contains("listen")||keys.contains("tls")))l.error("legacy listen/tls cannot mix with listener blocks");
+  for(std::size_t i=0;i<c.listeners.size();++i)for(std::size_t j=0;j<i;++j) {
+    const auto& a=c.listeners[i];const auto& b=c.listeners[j];
+    if(a.port==b.port&&(a.bind==b.bind||a.bind=="0.0.0.0"||b.bind=="0.0.0.0"))l.error("conflicting listener bindings");
   }
+  std::size_t member_count=0;
+  for(const auto& [name,pool]:c.pools) {
+    if(c.upstreams.contains(name))l.error("pool/upstream namespace collision");
+    std::set<std::string> endpoints;
+    member_count+=pool.members.size();
+    for(const auto& member:pool.members) {
+      auto it=c.upstreams.find(member);if(it==c.upstreams.end())l.error("unknown pool member");
+      if(!endpoints.insert(it->second.address+":"+std::to_string(it->second.port)).second)l.error("duplicate endpoint within pool");
+    }
+  }
+  if(member_count>256)l.error("at most 256 total pool memberships");
+  for(const auto& route:c.routes) {
+    if(!route.upstream.empty()&&!c.upstreams.contains(route.upstream)&&!c.pools.contains(route.upstream)) l.error("proxy route references unknown upstream");
+  }
+  std::size_t identities=0;
+  for(const auto& listener:configured_listeners(c))if(listener.tls.enabled)identities+=1+listener.tls.sites.size();
+  if(identities>64)l.error("at most 64 listener TLS identities per process");
+  for(const auto& [name,u]:c.upstreams) {(void)name;if(u.tls)++identities;}
+  if(identities*4194304U>c.tls_context_budget_bytes)l.error("TLS context reservation exceeds context budget");
+  for(const auto& listener:c.listeners)if(!listener.metrics.empty())for(const auto& route:c.routes)
+    if(route.path==listener.metrics)l.error("metrics path conflicts with a route");
   if(c.buffer_bytes<2*c.limits.header_bytes+1024) l.error("buffer_bytes must fit twice header_bytes plus 1024 bytes");
   if(8*c.limits.header_bytes+8*c.buffer_bytes+512*c.limits.header_count+32768+
-     ((c.tls.enabled||std::any_of(c.upstreams.begin(),c.upstreams.end(),[](const auto& item){return item.second.tls;}))?524288U:0U)>c.memory_budget_bytes)
+     (uses_tls(c)?524288U:0U)+probe_reservation(c)>c.memory_budget_bytes)
     l.error("memory budget cannot admit one connection");
   return c;
 }

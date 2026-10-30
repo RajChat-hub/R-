@@ -1,6 +1,7 @@
 // Copyright (c) 2026 SalesAutoMate. First-party licensing pending.
 #pragma once
 #include "config.hpp"
+#include "balance.hpp"
 #include "fd.hpp"
 #include "tls.hpp"
 #include <chrono>
@@ -10,6 +11,8 @@ struct ProxyTransaction {
   Fd socket;
   std::unique_ptr<Tls> tls;
   const Upstream* target=nullptr;
+  BackendState* backend=nullptr;
+  bool tracked=false,observation=false;
   StreamParser response;
   std::string outgoing,incoming;
   std::size_t sent=0;
