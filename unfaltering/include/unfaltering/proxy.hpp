@@ -12,7 +12,7 @@ struct ProxyTransaction {
   std::unique_ptr<Tls> tls;
   const Upstream* target=nullptr;
   BackendState* backend=nullptr;
-  bool tracked=false;
+  bool tracked=false,observation=false;
   StreamParser response;
   std::string outgoing,incoming;
   std::size_t sent=0;

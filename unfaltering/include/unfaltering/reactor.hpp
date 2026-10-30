@@ -2,6 +2,7 @@
 #pragma once
 #include "connection.hpp"
 #include "io_pool.hpp"
+#include "health.hpp"
 #include <map>
 #include <unordered_map>
 namespace uf {
@@ -21,6 +22,15 @@ class Reactor {
   IoPool io;
   EventLog log;
   std::unordered_map<std::uint64_t, Connection> clients;
+  std::unordered_map<std::uint64_t,std::unique_ptr<Probe>> probes;
+  std::size_t probe_cursor=0,peak_probes=0;
+  Time next_probe_start{};
+  std::uint64_t probes_started=0,health_changes=0,selection_failures=0;
+  void health_tick();
+  void probe_event(std::uint64_t id,std::uint32_t events);
+  void finish_probe(std::uint64_t id,bool success,bool observation=true);
+  void health_transition(const BackendState& state);
+  void metrics(Connection& c);
   std::uint64_t next_id = 4, requests = 0;
   bool stopping = false;
   Time stop_at{};
@@ -32,7 +42,7 @@ class Reactor {
   void request_pump(Connection& c);
   void response_pump(Connection& c);
   void release_upstream(Connection& c);
-  void proxy_failure(Connection& c,int status);
+  void proxy_failure(Connection& c,int status,bool backend_failure=false);
   bool sync_upstream(Connection& c,std::uint64_t id);
   void upstream_event(Connection& c,std::uint32_t events);
   void upstream_write(Connection& c);

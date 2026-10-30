@@ -1,0 +1,16 @@
+test_metrics_rejects_untrusted_host_authority (__main__.Health.test_metrics_rejects_untrusted_host_authority) ... FAIL
+
+======================================================================
+FAIL: test_metrics_rejects_untrusted_host_authority (__main__.Health.test_metrics_rejects_untrusted_host_authority)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/18f9fab883c0/unfaltering-phase3/unfaltering/tests/integration/health_test.py", line 166, in test_metrics_rejects_untrusted_host_authority
+    self.assertEqual(status,403);self.assertNotIn(b'backends',body)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 200 != 403
+
+----------------------------------------------------------------------
+Ran 1 test in 1.733s
+
+FAILED (failures=1)
+Health/native resource high-water: {'peak_probes': 2, 'probes_started': 10, 'health_changes': 4, 'rss_kib': 20864, 'peak_network_endpoints': 3, 'event': 'stopped', 'requests': 30, 'peak_proxy_queue_bytes': 0}

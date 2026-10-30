@@ -32,6 +32,7 @@ class Handler(BaseHTTPRequestHandler):
                 consume(n);assert self.rfile.read(2)==b'\r\n'
         else:consume(int(self.headers.get('Content-Length','0')))
         b.observed.put({'method':self.command,'path':self.path,'operation':self.headers.get('X-Operation-ID'),'length':count})
+        if b.mode=='app-error':self.reply(503,b'application-error');return
         if b.mode=='reset':
             self.connection.setsockopt(socket.SOL_SOCKET,socket.SO_LINGER,struct.pack('ii',1,0));self.close_connection=True;return
         if b.mode=='short':

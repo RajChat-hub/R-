@@ -37,7 +37,11 @@ void Reactor::release_upstream(Connection& c) {
   p.tls.reset();
   p.socket.reset();
 }
-void Reactor::proxy_failure(Connection& c,int status) {
+void Reactor::proxy_failure(Connection& c,int status,bool backend_failure) {
+  if(backend_failure&&c.proxy&&c.proxy->backend&&!c.proxy->observation) {
+    c.proxy->observation=true;
+    if(balancer.observe_failure(*c.proxy->backend))health_transition(*c.proxy->backend);
+  }
   if(c.proxy)log.emit("{\"event\":\"proxy_failure\",\"status\":"+std::to_string(status)+
     ",\"decoded\":"+std::to_string(c.proxy->response.decoded_bytes())+
     ",\"queued\":"+std::to_string(c.proxy->incoming.size())+"}\n");
@@ -69,7 +73,7 @@ void Reactor::start_proxy(Connection& c,std::uint64_t id,const Upstream& u) {
   sockaddr_in addr{};addr.sin_family=AF_INET;addr.sin_port=htons(u.port);
   inet_pton(AF_INET,u.address.c_str(),&addr.sin_addr);
   int rc=connect(p.socket.get(),reinterpret_cast<sockaddr*>(&addr),sizeof addr);
-  if(rc<0&&errno!=EINPROGRESS) {proxy_failure(c,502);return;}
+  if(rc<0&&errno!=EINPROGRESS) {proxy_failure(c,502,true);return;}
   p.connecting=rc<0;
   if(u.tls) {
     SSL_CTX* ctx=nullptr;
@@ -130,21 +134,21 @@ void Reactor::response_pump(Connection& c) {
   auto& p=*c.proxy;
   for(;;) {
     if(p.eof&&p.incoming.empty()&&!p.response.done()) {
-      if(p.transport_error) {proxy_failure(c,502);return;}
+      if(p.transport_error) {proxy_failure(c,502,true);return;}
       p.response.eof();
     }
-    if(p.response.failed()) {proxy_failure(c,502);return;}
+    if(p.response.failed()) {proxy_failure(c,502,true);return;}
     if(!p.headers) {
       if(!p.response.ready()) {
         if(p.incoming.empty()) return;
         std::string ignored;
         auto n=p.response.consume(p.incoming,ignored,0);
         p.incoming.erase(0,n);
-        if(p.response.failed()) {proxy_failure(c,502);return;}
+        if(p.response.failed()) {proxy_failure(c,502,true);return;}
         if(!p.response.ready()) return;
       }
       if(p.response.head().status<200) {
-        if(++p.informational>8) {proxy_failure(c,502);return;}
+        if(++p.informational>8) {proxy_failure(c,502,true);return;}
         p.response=StreamParser(Limits{cfg.limits.header_bytes,cfg.limits.header_count,cfg.response_body_bytes},true,c.parser.head().method=="HEAD");
         continue;
       }
@@ -158,8 +162,9 @@ void Reactor::response_pump(Connection& c) {
     bool chunked=p.response.head().framing==Framing::chunked||p.response.head().framing==Framing::eof;
     auto available=room(c.output,c.sent,cfg.buffer_bytes);
     if(p.response.done()) {
-      if(!p.incoming.empty()) {proxy_failure(c,502);return;}
+      if(!p.incoming.empty()) {proxy_failure(c,502,true);return;}
       p.finished=true;
+      if(!p.observation) {p.observation=true;balancer.observe_success(*p.backend);}
       if(!p.terminator) {
         if(chunked) {
           if(available<5) return;
@@ -174,7 +179,7 @@ void Reactor::response_pump(Connection& c) {
     std::string decoded;
     auto n=p.response.consume(p.incoming,decoded,std::min<std::size_t>(16384,available-(chunked?32U:0U)));
     p.incoming.erase(0,n);
-    if(p.response.failed()) {proxy_failure(c,502);return;}
+    if(p.response.failed()) {proxy_failure(c,502,true);return;}
     if(!decoded.empty()) append_output(c,chunked?chunk_frame(decoded):decoded,cfg);
     if(!n) return;
   }
@@ -191,7 +196,7 @@ void Reactor::upstream_write(Connection& c) {
     if(n>0) {auto size=static_cast<std::size_t>(n);p.sent+=size;budget-=size;request_pump(c);}
     else if(n<0&&errno==EINTR) continue;
     else if(n<0&&(errno==EAGAIN||errno==EWOULDBLOCK)) return;
-    else {proxy_failure(c,502);return;}
+    else {proxy_failure(c,502,true);return;}
   }
 }
 void Reactor::upstream_read(Connection& c) {
@@ -225,16 +230,16 @@ void Reactor::upstream_event(Connection& c,std::uint32_t events) {
   if(p.connecting) {
     int error=0;
     socklen_t length=sizeof error;
-    if(getsockopt(p.socket.get(),SOL_SOCKET,SO_ERROR,&error,&length)<0||error) {proxy_failure(c,502);return;}
+    if(getsockopt(p.socket.get(),SOL_SOCKET,SO_ERROR,&error,&length)<0||error) {proxy_failure(c,502,true);return;}
     p.connecting=false;
   }
   if(p.tls&&!p.tls->ready()) {
     auto result=p.tls->handshake();
-    if(result<0) {tls_diagnostic(*p.tls,true);proxy_failure(c,502);return;}
+    if(result<0) {tls_diagnostic(*p.tls,true);proxy_failure(c,502,true);return;}
     if(result==0)return;
     events|=EPOLLOUT; // Start sending on the successful handshake transition.
   }
-  if(events&EPOLLERR) {proxy_failure(c,502);return;}
+  if(events&EPOLLERR) {proxy_failure(c,502,true);return;}
   if(p.tls?p.tls->readable(events):(events&(EPOLLIN|EPOLLHUP|EPOLLRDHUP))) upstream_read(c);
   if(c.proxy&&c.proxy->socket&&(c.proxy->tls?c.proxy->tls->writable(events):(events&EPOLLOUT))) upstream_write(c);
 }

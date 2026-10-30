@@ -99,9 +99,10 @@ void Reactor::dispatch(Connection &c, std::uint64_t id) {
       log.emit("{\"event\":\"tls_site_mismatch\",\"listener\":"+std::to_string(listeners[c.listener_index].event)+"}\n");
       c.close=true;prepare(c,421,c.parser.head().method=="HEAD");return;
     }
-    if(auto route=match_route(cfg.routes,c.parser.head().target);route&&!route->upstream.empty()) {
+    if(auto route=match_route(cfg.routes,c.parser.head().target);route&&!route->upstream.empty()&&c.parser.head().target!=listeners[c.listener_index].config.metrics) {
       auto selected=balancer.select(route->upstream);
       if(!selected) {
+        ++selection_failures;
         log.emit("{\"event\":\"selection_unavailable\",\"target\":\""+route->upstream+"\"}\n");
         c.close=true;prepare(c,503,c.parser.head().method=="HEAD");return;
       }
@@ -124,6 +125,7 @@ void Reactor::dispatch(Connection &c, std::uint64_t id) {
     c.close = req.close || c.eof || stopping || c.requests >= cfg.max_requests;
     c.writing = true;
     c.deadline = Clock::now() + ms(cfg.write_ms);
+    if(!listeners[c.listener_index].config.metrics.empty()&&req.target==listeners[c.listener_index].config.metrics) {metrics(c);return;}
     if (req.method != "GET" && req.method != "HEAD") {
       prepare(c, 405);
       return;
@@ -308,7 +310,7 @@ void Reactor::accept_clients(std::size_t index) {
       }
       if (clients.size() >= cfg.max_connections ||
           (listener.config.max_connections&&listener.active>=listener.config.max_connections) ||
-          (clients.size() + 1) * connection_reservation(cfg) > cfg.memory_budget_bytes) {
+          (clients.size() + 1) * connection_reservation(cfg)+probe_reservation(cfg) > cfg.memory_budget_bytes) {
         ::close(fd);
         continue;
       }
@@ -343,6 +345,11 @@ void Reactor::stop() {
       epoll_ctl(epoll.get(),EPOLL_CTL_DEL,listener.socket.get(),nullptr);listener.socket.reset();
       log.emit("{\"event\":\"listener_stopped\",\"listener\":"+std::to_string(listener.event)+"}\n");
     }
+    for(auto& [event,probe]:probes) {
+      epoll_ctl(epoll.get(),EPOLL_CTL_DEL,probe->socket.get(),nullptr);probe->backend->probing=false;
+      log.emit("{\"event\":\"probe_cancelled\",\"id\":"+std::to_string(event)+"}\n");
+    }
+    probes.clear();
     std::vector<std::uint64_t> drop;
     for (auto &[id, c] : clients) {
       c.close = true;
@@ -428,6 +435,7 @@ int Reactor::run() {
           if(!stopping)accept_clients(static_cast<std::size_t>(bound-listeners.begin()));
           continue;
         }
+        if(probes.contains(id)) {probe_event(id,e.events);continue;}
         if(auto upstream=upstream_events.find(id);upstream!=upstream_events.end()) {
         auto client=clients.find(upstream->second);
         if(client==clients.end()) continue;
@@ -471,7 +479,8 @@ int Reactor::run() {
         if (!keep || !arm(c, id))
           erase(id);
       }
-      peak_network_endpoints=std::max(peak_network_endpoints,clients.size()+upstream_events.size());
+      peak_network_endpoints=std::max(peak_network_endpoints,clients.size()+upstream_events.size()+probes.size());
+      health_tick();
       auto now = Clock::now();
       for(auto& listener:listeners)if(listener.paused&&!stopping&&now>=listener.retry) {
         add(listener.socket.get(),listener.event,EPOLLIN);listener.paused=false;
@@ -497,9 +506,9 @@ int Reactor::run() {
             if(!c.proxy) {if(c.dead||!arm(c,id))drop.push_back(id);continue;}
           }
           auto& p=*c.proxy;
-          if((p.connecting||(p.tls&&!p.tls->ready()))&&now>=p.connect_deadline) proxy_failure(c,504);
-          else if(now>=p.response_deadline) proxy_failure(c,504);
-          else if(!p.early&&!p.request_sent&&now>=p.send_deadline) proxy_failure(c,504);
+          if((p.connecting||(p.tls&&!p.tls->ready()))&&now>=p.connect_deadline) proxy_failure(c,504,true);
+          else if(now>=p.response_deadline) proxy_failure(c,504,p.socket&&p.request_sent&&p.incoming.empty()&&c.sent==c.output.size());
+          else if(!p.early&&!p.request_sent&&now>=p.send_deadline) proxy_failure(c,504,c.parser.done());
           else if(!p.early&&!c.parser.done()&&now>=c.upload_deadline) proxy_failure(c,408);
           else if(c.sent<c.output.size()&&now>=c.write_deadline) c.dead=true;
           if(c.dead||!arm(c,id)) drop.push_back(id);
@@ -531,7 +540,7 @@ int Reactor::run() {
         erase(id);
     }
     rusage usage{};getrusage(RUSAGE_SELF,&usage);
-    log.finish("{\"rss_kib\":"+std::to_string(usage.ru_maxrss)+",\"peak_network_endpoints\":"+std::to_string(peak_network_endpoints)+",\"event\":\"stopped\",\"requests\":"+std::to_string(requests)+",\"peak_proxy_queue_bytes\":"+std::to_string(peak_proxy_bytes)+"}\n");
+    log.finish("{\"peak_probes\":"+std::to_string(peak_probes)+",\"probes_started\":"+std::to_string(probes_started)+",\"health_changes\":"+std::to_string(health_changes)+",\"rss_kib\":"+std::to_string(usage.ru_maxrss)+",\"peak_network_endpoints\":"+std::to_string(peak_network_endpoints)+",\"event\":\"stopped\",\"requests\":"+std::to_string(requests)+",\"peak_proxy_queue_bytes\":"+std::to_string(peak_proxy_bytes)+"}\n");
     return 0;
   }
 int serve(const Config& config) {return Reactor(config).run();}

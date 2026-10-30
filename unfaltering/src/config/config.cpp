@@ -189,10 +189,12 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
         auto field=l.word;if(field.empty()||!seen.insert(field).second)l.error("duplicate/incomplete listener field");l.next();
         if(field=="address")endpoint(l.value(),listener.bind,listener.port);
         else if(field=="tls")parse_listener_tls(listener.tls);
+        else if(field=="metrics") {listener.metrics=l.value();if(listener.metrics.empty()||listener.metrics.front()!='/'||listener.metrics.size()>128||listener.metrics.find_first_of("%?# \t")!=std::string::npos)l.error("invalid metrics path");}
         else if(field=="max_connections")listener.max_connections=numeric(l,1,4096);
         else l.error("unknown listener field");
       }
       l.need("}");if(!seen.contains("address"))l.error("listener address required");
+      if(!listener.metrics.empty()) {in_addr ip{};inet_pton(AF_INET,listener.bind.c_str(),&ip);if((ntohl(ip.s_addr)>>24)!=127)l.error("metrics listener must bind loopback IPv4");}
       c.listeners.push_back(std::move(listener));continue;
     }
     if (key == "host") {
@@ -234,7 +236,22 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
         auto field=l.word;
         if(field.empty()||!seen.insert(field).second) l.error("duplicate or incomplete upstream");
         l.next();
-        if(field=="tls") {
+        if(field=="health") {
+          u.health.enabled=true;l.need("{");std::set<std::string> options;
+          while(l.word!="}") {
+            auto option=l.word;if(option.empty()||!options.insert(option).second)l.error("duplicate/incomplete health option");l.next();
+            if(option=="path") {
+              u.health.path=l.value();
+              if(u.health.path.empty()||u.health.path.front()!='/'||u.health.path.size()>1024||u.health.path.find('#')!=std::string::npos||!std::all_of(u.health.path.begin(),u.health.path.end(),[](unsigned char byte){return byte>32&&byte<127;}))l.error("health path must be bounded origin form");
+            } else if(option=="interval_ms")u.health.interval_ms=numeric(l,200,60000);
+            else if(option=="timeout_ms")u.health.timeout_ms=numeric(l,100,60000);
+            else if(option=="failures")u.health.failures=numeric(l,1,100);
+            else if(option=="recoveries")u.health.recoveries=numeric(l,1,100);
+            else if(option=="expect_status")u.health.expect_status=numeric(l,200,399);
+            else l.error("unknown health option");
+          }
+          l.need("}");
+        } else if(field=="tls") {
           u.tls=true;l.need("{");std::set<std::string> tls_keys;
           while(l.word!="}") {
             auto option=l.word;
@@ -324,6 +341,9 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
       c.port = static_cast<unsigned short>(n);
     } else if (key == "root")
       c.root = path(l.value());
+    else if(key=="probe_concurrency")c.probe_concurrency=numeric(l,1,16);
+    else if(key=="probe_spacing_ms")c.probe_spacing_ms=numeric(l,25,1000);
+    else if(key=="tls_context_budget_bytes")c.tls_context_budget_bytes=numeric(l,2097152,1073741824);
     else if (key == "max_connections")
       c.max_connections = numeric(l, 1, 4096);
     else if (key == "max_requests")
@@ -378,9 +398,13 @@ Config parse_config(std::string_view text, const std::filesystem::path &file) {
   std::size_t identities=0;
   for(const auto& listener:configured_listeners(c))if(listener.tls.enabled)identities+=1+listener.tls.sites.size();
   if(identities>64)l.error("at most 64 listener TLS identities per process");
+  for(const auto& [name,u]:c.upstreams) {(void)name;if(u.tls)++identities;}
+  if(identities*4194304U>c.tls_context_budget_bytes)l.error("TLS context reservation exceeds context budget");
+  for(const auto& listener:c.listeners)if(!listener.metrics.empty())for(const auto& route:c.routes)
+    if(route.path==listener.metrics)l.error("metrics path conflicts with a route");
   if(c.buffer_bytes<2*c.limits.header_bytes+1024) l.error("buffer_bytes must fit twice header_bytes plus 1024 bytes");
   if(8*c.limits.header_bytes+8*c.buffer_bytes+512*c.limits.header_count+32768+
-     (uses_tls(c)?524288U:0U)>c.memory_budget_bytes)
+     (uses_tls(c)?524288U:0U)+probe_reservation(c)>c.memory_budget_bytes)
     l.error("memory budget cannot admit one connection");
   return c;
 }
